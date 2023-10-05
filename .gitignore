@@ -1,0 +1,9 @@
+*.swp
+*.rej
+*.orig
+/target
+/tools/c/virt-lint
+/go/virt-lint-cli
+/go/go.sum
+/virt-lint-*.tar.xz
+tags

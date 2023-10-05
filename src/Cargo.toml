@@ -1,0 +1,23 @@
+[package]
+name = "virt-lint"
+description.workspace = true
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+repository.workspace = true
+readme.workspace = true
+
+[lib]
+path = "virt-lint.rs"
+
+[features]
+capi = []
+
+[dependencies]
+enum-display-derive = "0.1.1"
+pkg-version = "1.0.0"
+sxd-document = "0.3.2"
+sxd-xpath = "0.4.2"
+thiserror = "1.0.48"
+virt={ git="https://gitlab.com/libvirt/libvirt-rust.git", rev="c7ee11c7585897f343d1c5ca9adc344bd9d21007" }

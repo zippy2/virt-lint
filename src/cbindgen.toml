@@ -1,0 +1,6 @@
+language = "C"
+header = "/* SPDX-License-Identifier: LGPL-3.0-or-later */"
+pragma_once = true
+sys_includes = ["libvirt/libvirt.h"]
+cpp_compat = true
+usize_is_size_t = true
