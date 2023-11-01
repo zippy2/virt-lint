@@ -1,9 +1,10 @@
-*.swp
-*.rej
 *.orig
+*.rej
+*.swp
+/Cargo.lock
+/go/go.sum
+/go/virt-lint-cli
 /target
 /tools/c/virt-lint
-/go/virt-lint-cli
-/go/go.sum
 /virt-lint-*.tar.xz
 tags
