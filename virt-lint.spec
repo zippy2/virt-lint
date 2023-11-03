@@ -12,7 +12,6 @@ Version:        0.0.1
 Release:        %autorelease
 Summary:        Virtualization linting library
 
-SourceLicense:  LGPL-3.0-or-later
 License:        LGPL-3.0-or-later
 URL:            https://gitlab.com/MichalPrivoznik/virt-lint
 Source0:        virt-lint-0.0.1.tar.xz
@@ -21,6 +20,7 @@ Source1:        virt-lint-0.0.1-vendor.tar.xz
 BuildRequires:  rust-packaging
 BuildRequires:  libvirt-devel
 BuildRequires:  cargo-c
+BuildRequires:  pkgconfig(lua)
 
 %global _description %{expand:
 %{summary}.}
@@ -72,12 +72,14 @@ tar -xoaf %{SOURCE1}
 
 %install
 CARGO_HOME=".cargo" cargo cinstall --destdir=%{buildroot} --prefix=%{_prefix} --libdir=%{_libdir}
+make install-data DESTDIR=%{buildroot} prefix=%{_prefix}
 
 %files
 %{_includedir}/virt_lint/virt_lint.h
 %{_libdir}/libvirt_lint.so*
 %{_libdir}/libvirt_lint.a
 %{_libdir}/pkgconfig/virt_lint.pc
+%{_datadir}/virt-lint/validators_lua
 
 %changelog
 %autochangelog

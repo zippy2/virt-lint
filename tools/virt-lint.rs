@@ -43,6 +43,7 @@ fn main() {
         }
 
         VirtLint::list_validator_tags()
+            .expect("Unable to list validator tags")
             .iter()
             .for_each(|tag| println!("{tag}"));
 

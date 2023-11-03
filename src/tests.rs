@@ -2,12 +2,24 @@
 
 // The rustc is complaining about dead code because only used when
 // ignored tests are executed.
-#![allow(dead_code, unused_imports)]
 
 #[cfg(test)]
 use crate::*;
+use std::sync::Once;
 use virt::connect::Connect;
 use virt::domain::Domain;
+
+static TEST_INIT: Once = Once::new();
+
+fn test_init() {
+    TEST_INIT.call_once(|| {
+        // Set
+        std::env::set_var(
+            "VIRT_LINT_LUA_PATH",
+            concat!(env!("CARGO_MANIFEST_DIR"), "/../validators_lua"),
+        );
+    });
+}
 
 fn conn() -> Connect {
     let c = Connect::open(Some("test:///default"));
@@ -21,6 +33,8 @@ fn close(mut conn: Connect) {
 
 #[test]
 fn test_empty() {
+    test_init();
+
     let c = conn();
     {
         let vl = VirtLint::new(Some(&c));
@@ -31,12 +45,29 @@ fn test_empty() {
 
 #[test]
 fn test_list_tags() {
-    let tags = VirtLint::list_validator_tags();
-    assert_eq!(tags, ["TAG_1", "TAG_2", "TAG_3", "TAG_4"]);
+    test_init();
+
+    let tags = VirtLint::list_validator_tags().unwrap();
+    assert_eq!(
+        tags,
+        [
+            "TAG_1",
+            "TAG_2",
+            "TAG_3",
+            "TAG_4",
+            "common",
+            "common/check_node_kvm",
+            "common/check_numa",
+            "common/check_numa_free",
+            "common/check_pcie_root_ports"
+        ]
+    );
 }
 
 #[test]
 fn test_simple() {
+    test_init();
+
     let c = conn();
     {
         let dom = match Domain::lookup_by_name(&c, "test") {
@@ -49,6 +80,8 @@ fn test_simple() {
         let mut vl = VirtLint::new(Some(&c));
 
         assert!(vl.validate(&domxml, &Vec::new(), false).is_ok());
+
+        vl.warnings.sort();
 
         assert_eq!(
             vl.warnings,
@@ -65,6 +98,21 @@ fn test_simple() {
                     WarningLevel::Error,
                     String::from("Not enough free memory on any NUMA node")
                 ),
+                VirtLintWarning::new(
+                    vec![String::from("common"), String::from("common/check_numa")],
+                    WarningDomain::Domain,
+                    WarningLevel::Error,
+                    String::from("Domain would not fit into any host NUMA node")
+                ),
+                VirtLintWarning::new(
+                    vec![
+                        String::from("common"),
+                        String::from("common/check_numa_free")
+                    ],
+                    WarningDomain::Domain,
+                    WarningLevel::Error,
+                    String::from("Not enough free memory on any NUMA node")
+                ),
             ]
         );
     }
@@ -74,6 +122,8 @@ fn test_simple() {
 
 #[test]
 fn test_offline_simple() {
+    test_init();
+
     // The connection here is used only to get domain XML and capabilities. Validation is done
     // completely offline.
     let c = conn();
@@ -97,23 +147,35 @@ fn test_offline_simple() {
 
     let mut vl = VirtLint::new(None);
 
-    assert!(vl.capabilities_set(Some(&capsxml)).is_ok());
-    assert!(vl.domain_capabilities_add(&domcapsxml).is_ok());
+    assert!(vl.capabilities_set(Some(capsxml)).is_ok());
+    assert!(vl.domain_capabilities_add(domcapsxml).is_ok());
     assert!(vl.validate(&domxml, &Vec::new(), false).is_ok());
+
+    vl.warnings.sort();
 
     assert_eq!(
         vl.warnings,
-        vec![VirtLintWarning::new(
-            vec![String::from("TAG_1"), String::from("TAG_2")],
-            WarningDomain::Domain,
-            WarningLevel::Error,
-            String::from("Domain would not fit into any host NUMA node")
-        ),]
+        vec![
+            VirtLintWarning::new(
+                vec![String::from("TAG_1"), String::from("TAG_2")],
+                WarningDomain::Domain,
+                WarningLevel::Error,
+                String::from("Domain would not fit into any host NUMA node")
+            ),
+            VirtLintWarning::new(
+                vec![String::from("common"), String::from("common/check_numa")],
+                WarningDomain::Domain,
+                WarningLevel::Error,
+                String::from("Domain would not fit into any host NUMA node")
+            ),
+        ]
     );
 }
 
 #[test]
 fn test_offline_with_error() {
+    test_init();
+
     // The connection here is used only to get domain XML and capabilities. Validation is done
     // completely offline.
     let c = conn();
@@ -137,8 +199,8 @@ fn test_offline_with_error() {
 
     let mut vl = VirtLint::new(None);
 
-    assert!(vl.capabilities_set(Some(&capsxml)).is_ok());
-    assert!(vl.domain_capabilities_add(&domcapsxml).is_ok());
+    assert!(vl.capabilities_set(Some(capsxml)).is_ok());
+    assert!(vl.domain_capabilities_add(domcapsxml).is_ok());
 
     // This fails, because there is a validator that requires connection
     assert!(vl.validate(&domxml, &Vec::new(), true).is_err());
@@ -147,18 +209,35 @@ fn test_offline_with_error() {
     assert!(vl
         .validate(
             &domxml,
-            &vec!["TAG_1".to_owned(), "TAG_3".to_owned(), "TAG_4".to_owned()],
+            &vec![
+                String::from("TAG_1"),
+                String::from("TAG_3"),
+                String::from("TAG_4"),
+                String::from("common/check_node_kvm"),
+                String::from("common/check_numa"),
+                String::from("common/check_pcie_root_ports"),
+            ],
             true
         )
         .is_ok());
 
+    vl.warnings.sort();
+
     assert_eq!(
         vl.warnings,
-        vec![VirtLintWarning::new(
-            vec![String::from("TAG_1"), String::from("TAG_2")],
-            WarningDomain::Domain,
-            WarningLevel::Error,
-            String::from("Domain would not fit into any host NUMA node")
-        ),]
+        vec![
+            VirtLintWarning::new(
+                vec![String::from("TAG_1"), String::from("TAG_2")],
+                WarningDomain::Domain,
+                WarningLevel::Error,
+                String::from("Domain would not fit into any host NUMA node")
+            ),
+            VirtLintWarning::new(
+                vec![String::from("common"), String::from("common/check_numa")],
+                WarningDomain::Domain,
+                WarningLevel::Error,
+                String::from("Domain would not fit into any host NUMA node")
+            ),
+        ]
     );
 }

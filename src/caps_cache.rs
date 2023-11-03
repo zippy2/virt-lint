@@ -2,12 +2,10 @@
 
 use crate::*;
 use std::collections::HashMap;
-use sxd_document::parser;
-use sxd_document::Package;
 
 #[derive(Debug)]
 pub(crate) struct CapsCache {
-    caps: Option<Package>,
+    caps: Option<String>,
 }
 
 impl CapsCache {
@@ -15,24 +13,19 @@ impl CapsCache {
         Self { caps: None }
     }
 
-    pub(crate) fn set(&mut self, capsxml: Option<&str>) -> VirtLintResult<()> {
-        self.caps = match capsxml {
-            Some(c) => Some(parser::parse(c)?),
-            None => None,
-        };
-        Ok(())
+    pub(crate) fn set(&mut self, capsxml: Option<String>) {
+        self.caps = capsxml
     }
 
     pub(crate) fn get(
         &mut self,
         conn: Option<&VirtLintConnect>,
         error_on_no_connect: bool,
-    ) -> VirtLintResult<Option<&Package>> {
+    ) -> VirtLintResult<Option<&String>> {
         if self.caps.is_none() {
             match conn {
                 Some(c) => {
                     let caps = c.conn.get_capabilities()?;
-                    let caps = parser::parse(&caps)?;
                     self.caps = Some(caps);
                 }
                 None => {
@@ -59,7 +52,7 @@ struct DomCapsKey {
 
 #[derive(Debug)]
 pub(crate) struct DomCapsCache {
-    cache: HashMap<DomCapsKey, Package>,
+    cache: HashMap<DomCapsKey, String>,
 }
 
 impl DomCapsCache {
@@ -73,9 +66,9 @@ impl DomCapsCache {
         self.cache.clear();
     }
 
-    pub(crate) fn add(&mut self, domcapsxml: &str) -> VirtLintResult<()> {
-        let domcapsxml_package = parser::parse(domcapsxml)?;
-        let domcapsxml_doc = domcapsxml_package.as_document();
+    pub(crate) fn add(&mut self, domcapsxml: String) -> VirtLintResult<()> {
+        let parser = Parser::default();
+        let domcapsxml_doc = parser.parse_string(&domcapsxml)?;
 
         let emulator = xpath_eval_or_none(&domcapsxml_doc, "//domainCapabilities/path");
         let arch = xpath_eval_or_none(&domcapsxml_doc, "//domainCapabilities/arch");
@@ -89,7 +82,7 @@ impl DomCapsCache {
             virttype: virttype.clone(),
         };
 
-        self.cache.insert(key, domcapsxml_package);
+        self.cache.insert(key, domcapsxml);
         Ok(())
     }
 
@@ -101,7 +94,7 @@ impl DomCapsCache {
         arch: Option<String>,
         machine: Option<String>,
         virttype: Option<String>,
-    ) -> VirtLintResult<Option<&Package>> {
+    ) -> VirtLintResult<Option<&String>> {
         let key = DomCapsKey {
             emulator: emulator.clone(),
             arch: arch.clone(),
@@ -131,8 +124,7 @@ impl DomCapsCache {
                     0,
                 )?;
 
-                let domcaps_package = parser::parse(&domcaps)?;
-                self.cache.insert(key.clone(), domcaps_package);
+                self.cache.insert(key.clone(), domcaps);
             }
         }
 

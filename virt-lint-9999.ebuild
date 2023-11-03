@@ -12,6 +12,10 @@ CRATES="
 	anstyle-parse@0.2.1
 	anstyle-query@1.0.0
 	anstyle-wincon@2.1.0
+	autocfg@1.1.0
+	bstr@1.7.0
+	cc@1.0.83
+	cfg-if@1.0.0
 	clap@4.4.4
 	clap_builder@4.4.4
 	clap_derive@4.4.2
@@ -20,6 +24,11 @@ CRATES="
 	enum-display-derive@0.1.1
 	heck@0.4.1
 	libc@0.2.148
+	memchr@2.6.4
+	mlua@0.9.1
+	mlua-sys@0.3.2
+	num-traits@0.2.17
+	once_cell@1.18.0
 	peresil@0.3.0
 	pkg-config@0.3.27
 	pkg-version@1.0.0
@@ -28,6 +37,9 @@ CRATES="
 	proc-macro2@1.0.67
 	quick-error@1.2.3
 	quote@1.0.33
+	rustc-hash@1.1.0
+	serde@1.0.189
+	serde_derive@1.0.189
 	strsim@0.10.0
 	sxd-document@0.3.2
 	sxd-xpath@0.4.2
@@ -54,7 +66,7 @@ declare -A GIT_CRATES=(
 	[virt]="https://gitlab.com/libvirt/libvirt-rust.git;c7ee11c7585897f343d1c5ca9adc344bd9d21007;cargo_home/git/checkouts/libvirt-rust-a02c7639fc7cb7e7/c7ee11c/"
 )
 
-inherit edo cargo
+inherit edo cargo go-module
 
 DESCRIPTION="Virtualization linting library"
 HOMEPAGE="https://gitlab.com/MichalPrivoznik/virt-lint"
@@ -72,11 +84,16 @@ fi
 # use cargo-license for a more accurate license picture
 LICENSE="0BSD Apache-2.0 Apache-2.0-with-LLVM-exceptions BSD BSD-2 ISC LGPL-2.1 LGPL-3+ MIT Unicode-DFS-2016 Unlicense"
 SLOT="0"
+IUSE="+c +go"
+REQUIRED_USE="go? ( c )"
 
-DEPEND=""
+DEPEND="
+	dev-lang/lua:5.4
+	c? ( app-emulation/libvirt )"
 RDEPEND="${DEPEND}"
-BDEPEND="
-	dev-util/cargo-c"
+BDEPEND="${RDEPEND}
+	c? ( dev-util/cargo-c )
+	go? ( dev-lang/go )"
 
 # rust does not use *FLAGS from make.conf, silence portage warning
 # update with proper path to binaries this crate installs, omit leading /
@@ -103,7 +120,7 @@ src_compile() {
 
 	cargo_src_compile
 
-	edo cargo cbuild "${cargoargs[@]}"
+	use c && edo cargo cbuild "${cargoargs[@]}"
 }
 
 src_install() {
@@ -118,5 +135,7 @@ src_install() {
 
 	cargo_src_install --path ./tools
 
-	edo cargo cinstall "${cargoargs[@]}"
+	emake DESTDIR="${D}" install-data
+
+	use c && edo cargo cinstall "${cargoargs[@]}"
 }

@@ -1,19 +1,21 @@
 /* SPDX-License-Identifier: LGPL-3.0-or-later */
 
+#[cfg(feature = "capi")]
 mod capi;
 mod caps_cache;
 mod errors;
+#[cfg(test)]
 mod tests;
 mod utils;
 mod validators;
+mod validators_lua;
 
 use crate::caps_cache::*;
 use crate::errors::*;
 use crate::utils::*;
 use crate::validators::*;
-use sxd_document::dom::Document;
-use sxd_document::parser;
-use sxd_document::Package;
+use libxml::parser::Parser;
+use libxml::tree::Document;
 use virt::connect::Connect;
 
 #[macro_use]
@@ -21,7 +23,7 @@ extern crate enum_display_derive;
 use std::fmt::Display;
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Display, PartialEq)]
+#[derive(Clone, Copy, Debug, Display, PartialEq, PartialOrd, Ord, Eq)]
 pub enum WarningDomain {
     /// The problem lies inside of domain XML
     Domain,
@@ -31,7 +33,7 @@ pub enum WarningDomain {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Display, PartialEq)]
+#[derive(Clone, Copy, Debug, Display, PartialEq, PartialOrd, Ord, Eq)]
 pub enum WarningLevel {
     /// Critical error, domain won't start
     Error,
@@ -43,7 +45,7 @@ pub enum WarningLevel {
     Notice,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, PartialOrd, Ord, Eq)]
 pub struct VirtLintWarning {
     tags: Vec<String>,
     domain: WarningDomain,
@@ -139,7 +141,7 @@ impl VirtLint {
     /// Intended to be used by validators.
     /// If the offline mode was requested and no capabilities were set beforehand (via
     /// [`capabilities_set()`]) an error is returned.
-    fn capabilities_get(&mut self) -> VirtLintResult<Option<&Package>> {
+    fn capabilities_get(&mut self) -> VirtLintResult<Option<&String>> {
         self.caps_cache
             .get(self.conn.as_ref(), self.error_on_no_connect)
     }
@@ -153,8 +155,9 @@ impl VirtLint {
     /// Pass `None` to clear any previously set capabilities.
     ///
     /// [`new()`]: VirtLint::new
-    pub fn capabilities_set(&mut self, capsxml: Option<&str>) -> VirtLintResult<()> {
-        self.caps_cache.set(capsxml)
+    pub fn capabilities_set(&mut self, capsxml: Option<String>) -> VirtLintResult<()> {
+        self.caps_cache.set(capsxml);
+        Ok(())
     }
 
     /// Get domain capabilities.
@@ -167,7 +170,7 @@ impl VirtLint {
     fn domain_capabilities_get(
         &mut self,
         domxml: Option<&Document>,
-    ) -> VirtLintResult<Option<&Package>> {
+    ) -> VirtLintResult<Option<&String>> {
         let mut emulator = None;
         let mut arch = None;
         let mut machine = None;
@@ -204,7 +207,7 @@ impl VirtLint {
     /// from passed XML.
     ///
     /// [`new()`]: VirtLint::new
-    pub fn domain_capabilities_add(&mut self, domcapsxml: &str) -> VirtLintResult<()> {
+    pub fn domain_capabilities_add(&mut self, domcapsxml: String) -> VirtLintResult<()> {
         self.domcaps_cache.add(domcapsxml)
     }
 
@@ -213,13 +216,12 @@ impl VirtLint {
     /// Intended to be used by validators.
     fn add_warning(
         &mut self,
-        tags: &[&'static str],
+        mut tags: Vec<String>,
         domain: WarningDomain,
         level: WarningLevel,
         msg: String,
     ) {
-        let tags = tags.iter().map(|x| x.to_string()).collect::<Vec<String>>();
-
+        tags.sort();
         let w = VirtLintWarning::new(tags, domain, level, msg);
 
         self.warnings.push(w);
@@ -254,15 +256,14 @@ impl VirtLint {
         validator_tags: &Vec<String>,
         error_on_no_connect: bool,
     ) -> VirtLintResult<()> {
-        let validators = Validators::new();
-        let domxml_doc = parser::parse(domxml)?;
+        let mut validators = Validators::new();
 
         // Clear warnings from previous runs
         self.warnings.clear();
 
         self.error_on_no_connect = error_on_no_connect;
 
-        validators.validate(validator_tags, self, &domxml_doc.as_document())
+        validators.validate(validator_tags, self, domxml)
     }
 
     /// List all validator tags.
@@ -271,8 +272,10 @@ impl VirtLint {
     /// only a subset of linting rules. See [`validate()`].
     ///
     /// [`validate()`]: VirtLint::validate
-    pub fn list_validator_tags() -> Vec<String> {
-        Validators::new().list_tags()
+    pub fn list_validator_tags() -> VirtLintResult<Vec<String>> {
+        let mut tags: Vec<String> = Validators::new().list_tags()?.into_iter().collect();
+        tags.sort();
+        Ok(tags)
     }
 
     /// Obtain linting warnings.
@@ -280,7 +283,8 @@ impl VirtLint {
     /// See [`validate()`].
     ///
     /// [`validate()`]: VirtLint::validate
-    pub fn warnings(&self) -> &Vec<VirtLintWarning> {
+    pub fn warnings(&mut self) -> &Vec<VirtLintWarning> {
+        self.warnings.sort();
         &self.warnings
     }
 }

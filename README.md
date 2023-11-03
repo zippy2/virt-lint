@@ -222,7 +222,7 @@ There are plenty of areas to improve on:
   - [ ] Write more of them.
 - [ ] Separate validators from the library (for instance like [libosinfo] does
       it). These could be then updated independently from the library code.
-  - [ ] Utilize [mlua] crate and rewrite validators in Lua.
+  - [x] Utilize [mlua] crate and rewrite validators in Lua.
 - [ ] Write bindings to other languages (Python, Perl?, Java?, JavaScript?)
 - [ ] Don't link with libvirt.so in offline mode
 

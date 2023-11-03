@@ -4,7 +4,10 @@ ifeq ($(VIRTLINT_BASE),)
 VIRTLINT_BASE := $(PWD)/target/x86_64-unknown-linux-gnu/debug/
 endif
 
-all: virt-lint-cli
+all: libvirt-mod virt-lint-cli
+
+libvirt-mod:
+	go mod download libvirt.org/go/libvirt
 
 virt-lint-cli: virt-lint-cli.go virt-lint/virt-lint.go $(VIRTLINT_BASE)/virt_lint.h
 	PKG_CONFIG_PATH=$(VIRTLINT_BASE) go build $<

@@ -1,4 +1,6 @@
 VERSION ?= $(shell git describe --tags HEAD 2>/dev/null || echo "0.0.1")
+prefix ?= /usr
+datarootdir ?= $(prefix)/share
 
 all: rust c-build go-build
 
@@ -26,7 +28,7 @@ c-build: rust
 c-run: c-build
 	$(MAKE) -C tools/c/ run
 
-go-build: rust
+go-build: rust-cbuild
 	$(MAKE) -C go/
 
 go-run: go-build
@@ -69,3 +71,10 @@ rpm: virt-lint-$(VERSION).tar.xz virt-lint-$(VERSION)-vendor.tar.xz
 	cp virt-lint-$(VERSION)-vendor.tar.xz ~/rpmbuild/SOURCES && \
 	rpmbuild -ba virt-lint.spec && \
 	rm -f virt-lint-$(VERSION)-vendor.tar.xz
+
+install-data:
+	mkdir -p $(DESTDIR)$(datarootdir)/virt-lint/validators_lua
+	cp --recursive validators_lua $(DESTDIR)$(datarootdir)/virt-lint/
+
+uninstall-data:
+	rm -rf $(DESTDIR)$(datarootdir)/virt-lint/

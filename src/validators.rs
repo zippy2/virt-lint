@@ -1,12 +1,15 @@
 /* SPDX-License-Identifier: LGPL-3.0-or-later */
 
 use crate::utils::*;
+use crate::validators_lua::*;
 use crate::*;
+use libxml::parser::Parser;
+use libxml::tree::Document;
+use libxml::xpath::Context;
 use std::collections::HashSet;
-use sxd_document::dom::Document;
-use sxd_xpath::evaluate_xpath;
+use std::path::PathBuf;
 
-type ValidatorCB = dyn Fn(&mut VirtLint, &Document, &Validator) -> VirtLintResult<()>;
+type ValidatorCB = dyn Fn(&mut VirtLint, &str, &Document, &Validator) -> VirtLintResult<()>;
 
 struct Validator {
     cb: &'static ValidatorCB,
@@ -29,10 +32,11 @@ impl PartialEq for Validator {
 
 pub struct Validators {
     validators: Vec<Validator>,
+    lua: ValidatorsLua,
 }
 
 impl Validators {
-    pub fn new() -> Self {
+    fn new_paths(paths: Vec<PathBuf>) -> Self {
         let validators = vec![
             Validator {
                 cb: &check_numa,
@@ -52,10 +56,29 @@ impl Validators {
             },
         ];
 
-        Self { validators }
+        let lua = ValidatorsLua::new(paths, "check_", "lua");
+
+        Self { validators, lua }
     }
 
-    pub fn list_tags(&mut self) -> Vec<String> {
+    pub fn new() -> Self {
+        let mut lua_paths = vec![
+            PathBuf::from("/usr/share/virt-lint/validators_lua"),
+            PathBuf::from("./validators_lua"),
+        ];
+
+        if let Some(paths) = std::env::var_os("VIRT_LINT_LUA_PATH") {
+            lua_paths.clear();
+
+            for path in std::env::split_paths(&paths) {
+                lua_paths.push(path);
+            }
+        }
+
+        Self::new_paths(lua_paths)
+    }
+
+    pub fn list_tags(&mut self) -> VirtLintResult<HashSet<String>> {
         let mut tags: HashSet<String> = HashSet::new();
 
         for v in &self.validators {
@@ -64,12 +87,23 @@ impl Validators {
             });
         }
 
-        let mut tags = tags.into_iter().collect::<Vec<String>>();
-        tags.sort();
-        tags
+        tags.extend(self.lua.list_tags()?);
+        Ok(tags)
     }
 
-    fn filter_validators(&self, tags: &Vec<String>) -> VirtLintResult<Vec<&Validator>> {
+    fn validate_tags(&mut self, tags: &[String]) -> VirtLintResult<()> {
+        let known_tags: HashSet<String> = self.list_tags()?;
+
+        for tag in tags.iter() {
+            if !known_tags.contains(tag) {
+                return Err(VirtLintError::UnknownValidatorTag(tag.to_string()));
+            }
+        }
+
+        Ok(())
+    }
+
+    fn get_validators(&self, tags: &Vec<String>) -> Vec<&Validator> {
         let mut ret: Vec<&Validator> = Vec::new();
 
         if tags.is_empty() {
@@ -77,71 +111,71 @@ impl Validators {
                 ret.push(v);
             });
         } else {
-            for tag in tags {
-                let mut found: bool = false;
-
+            for tag in tags.iter() {
                 for validator in &self.validators {
-                    if validator.tags.contains(&tag.as_str()) {
-                        found = true;
-
-                        if !ret.contains(&validator) {
-                            ret.push(validator);
-                        }
+                    if validator.tags.contains(&tag.as_str()) && !ret.contains(&validator) {
+                        ret.push(validator);
                     }
-                }
-
-                if !found {
-                    return Err(VirtLintError::UnknownValidatorTag(tag.to_string()));
                 }
             }
         }
-        Ok(ret)
+
+        ret
     }
 
     pub fn validate(
-        self,
+        &mut self,
         tags: &Vec<String>,
         vl: &mut VirtLint,
-        domxml: &Document,
+        domxml: &str,
     ) -> VirtLintResult<()> {
-        let validators = self.filter_validators(tags)?;
+        let parser = Parser::default();
+        let domxml_doc = parser.parse_string(domxml)?;
+
+        self.validate_tags(tags)?;
+
+        let validators = self.get_validators(tags);
+
+        self.lua.validate(tags, vl, domxml, &domxml_doc)?;
 
         for validator in validators.iter() {
-            (validator.cb)(vl, domxml, validator)?;
+            (validator.cb)(vl, domxml, &domxml_doc, validator)?;
         }
 
         Ok(())
     }
 }
 
-fn check_numa(vl: &mut VirtLint, domxml: &Document, va: &Validator) -> VirtLintResult<()> {
+fn check_numa(
+    vl: &mut VirtLint,
+    _domxml: &str,
+    domxml_doc: &Document,
+    va: &Validator,
+) -> VirtLintResult<()> {
     let mut numa_mems: Vec<u64> = Vec::new();
     let mut dom_mem: u64 = 0;
     let mut would_fit: bool = false;
+    let parser = Parser::default();
 
     let caps = match vl.capabilities_get()? {
-        Some(caps) => caps,
+        Some(caps) => parser.parse_string(caps)?,
         None => {
             return Ok(());
         }
     };
-    let caps_doc = caps.as_document();
 
-    let r = evaluate_xpath(
-        &caps_doc,
-        "//capabilities/host/topology/cells/cell/memory/text()",
-    );
-    if let Ok(sxd_xpath::Value::Nodeset(ns)) = r {
-        for node in ns.iter() {
-            if let sxd_xpath::nodeset::Node::Text(val) = node {
-                numa_mems.push(val.text().parse().unwrap())
-            }
-        }
+    let ctxt = Context::new(&caps).unwrap();
+
+    let nodes = ctxt
+        .evaluate("//capabilities/host/topology/cells/cell/memory/text()")
+        .unwrap();
+
+    for node in &nodes.get_nodes_as_vec() {
+        numa_mems.push(node.get_content().parse().unwrap())
     }
 
-    let r = evaluate_xpath(domxml, "//domain/memory");
-    if let Ok(v) = r {
-        dom_mem = v.number() as u64;
+    if let Some(mem) = xpath_eval_or_none(domxml_doc, "//domain/memory") {
+        dom_mem = parse_int(&mem)?
     }
 
     for node in numa_mems.iter() {
@@ -153,7 +187,10 @@ fn check_numa(vl: &mut VirtLint, domxml: &Document, va: &Validator) -> VirtLintR
 
     if !would_fit {
         vl.add_warning(
-            &va.tags,
+            va.tags
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>(),
             WarningDomain::Domain,
             WarningLevel::Error,
             String::from("Domain would not fit into any host NUMA node"),
@@ -163,11 +200,17 @@ fn check_numa(vl: &mut VirtLint, domxml: &Document, va: &Validator) -> VirtLintR
     Ok(())
 }
 
-fn check_numa_free(vl: &mut VirtLint, domxml: &Document, va: &Validator) -> VirtLintResult<()> {
+fn check_numa_free(
+    vl: &mut VirtLint,
+    _domxml: &str,
+    domxml_doc: &Document,
+    va: &Validator,
+) -> VirtLintResult<()> {
     let mut numa_ids: Vec<i32> = Vec::new();
     let mut numa_mems_free: Vec<u64> = Vec::new();
     let mut dom_mem: u64 = 0;
     let mut would_fit: bool = false;
+    let parser = Parser::default();
 
     let conn = match vl.get_conn()? {
         Some(c) => c,
@@ -175,20 +218,20 @@ fn check_numa_free(vl: &mut VirtLint, domxml: &Document, va: &Validator) -> Virt
     };
 
     let caps = match vl.capabilities_get()? {
-        Some(caps) => caps,
+        Some(caps) => parser.parse_string(caps)?,
         None => {
             return Ok(());
         }
     };
-    let caps_doc = caps.as_document();
 
-    let r = evaluate_xpath(&caps_doc, "//capabilities/host/topology/cells/cell/@id");
-    if let Ok(sxd_xpath::Value::Nodeset(ns)) = r {
-        for node in ns.iter() {
-            if let sxd_xpath::nodeset::Node::Attribute(val) = node {
-                numa_ids.push(val.value().parse().unwrap())
-            }
-        }
+    let ctxt = Context::new(&caps).unwrap();
+
+    let nodes = ctxt
+        .evaluate("//capabilities/host/topology/cells/cell/@id")
+        .unwrap();
+
+    for node in nodes.get_nodes_as_vec() {
+        numa_ids.push(node.get_content().parse().unwrap())
     }
 
     for node in numa_ids.iter() {
@@ -199,9 +242,8 @@ fn check_numa_free(vl: &mut VirtLint, domxml: &Document, va: &Validator) -> Virt
             .for_each(|x| numa_mems_free.push(x));
     }
 
-    let r = evaluate_xpath(domxml, "//domain/memory");
-    if let Ok(v) = r {
-        dom_mem = v.number() as u64;
+    if let Some(mem) = xpath_eval_or_none(domxml_doc, "//domain/memory") {
+        dom_mem = parse_int(&mem)?
     }
 
     numa_mems_free.into_iter().for_each(|x| {
@@ -212,7 +254,10 @@ fn check_numa_free(vl: &mut VirtLint, domxml: &Document, va: &Validator) -> Virt
 
     if !would_fit {
         vl.add_warning(
-            &va.tags,
+            va.tags
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>(),
             WarningDomain::Domain,
             WarningLevel::Error,
             String::from("Not enough free memory on any NUMA node"),
@@ -222,23 +267,29 @@ fn check_numa_free(vl: &mut VirtLint, domxml: &Document, va: &Validator) -> Virt
     Ok(())
 }
 
-fn check_node_kvm(vl: &mut VirtLint, domxml: &Document, va: &Validator) -> VirtLintResult<()> {
+fn check_node_kvm(
+    vl: &mut VirtLint,
+    _domxml: &str,
+    domxml_doc: &Document,
+    va: &Validator,
+) -> VirtLintResult<()> {
     let mut emit_warning = false;
 
-    if vl.domain_capabilities_get(Some(domxml)).is_err() {
+    if vl.domain_capabilities_get(Some(domxml_doc)).is_err() {
         emit_warning = true;
         /* Plain fact we failed to look up domain capabilities for given XML warrants a warning.
          * But let's try harder. */
     }
 
     if let Some(caps) = vl.capabilities_get()? {
-        let caps_doc = caps.as_document();
+        let parser = Parser::default();
+        let caps = parser.parse_string(caps)?;
         let mut xpath: String = String::new();
 
-        let emulator = xpath_eval_or_none(domxml, "//domain/devices/emulator");
-        let arch = xpath_eval_or_none(domxml, "//domain/os/type/@arch");
-        let machine = xpath_eval_or_none(domxml, "//domain/os/type/@machine");
-        let virttype = xpath_eval_or_none(domxml, "//domain/@type");
+        let emulator = xpath_eval_or_none(&caps, "//domain/devices/emulator");
+        let arch = xpath_eval_or_none(&caps, "//domain/os/type/@arch");
+        let machine = xpath_eval_or_none(&caps, "//domain/os/type/@machine");
+        let virttype = xpath_eval_or_none(&caps, "//domain/@type");
 
         if let Some(s) = arch {
             xpath += &format!("@name='{s}'")
@@ -270,12 +321,15 @@ fn check_node_kvm(vl: &mut VirtLint, domxml: &Document, va: &Validator) -> VirtL
             top_xpath += &format!("[{xpath}]")
         };
 
-        emit_warning = xpath_eval_or_none(&caps_doc, &top_xpath).is_none();
+        emit_warning = xpath_eval_or_none(&caps, &top_xpath).is_none();
     }
 
     if emit_warning {
         vl.add_warning(
-            &va.tags,
+            va.tags
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>(),
             WarningDomain::Node,
             WarningLevel::Warning,
             String::from("No suitable emulator found"),
@@ -287,12 +341,13 @@ fn check_node_kvm(vl: &mut VirtLint, domxml: &Document, va: &Validator) -> VirtL
 
 fn check_pcie_root_ports(
     vl: &mut VirtLint,
-    domxml: &Document,
+    _domxml: &str,
+    domxml_doc: &Document,
     va: &Validator,
 ) -> VirtLintResult<()> {
     let mut pcie_chassis: Vec<u64> = Vec::new();
 
-    let virttype = match xpath_eval_or_none(domxml, "//domain/@type") {
+    let virttype = match xpath_eval_or_none(domxml_doc, "//domain/@type") {
         Some(x) => x,
         None => {
             return Ok(());
@@ -303,7 +358,7 @@ fn check_pcie_root_ports(
         return Ok(());
     }
 
-    let machine = match xpath_eval_or_none(domxml, "//domain/os/type/@machine") {
+    let machine = match xpath_eval_or_none(domxml_doc, "//domain/os/type/@machine") {
         Some(x) => x,
         None => {
             return Ok(());
@@ -314,38 +369,33 @@ fn check_pcie_root_ports(
         return Ok(());
     }
 
-    let r = evaluate_xpath(
-        domxml,
-        "//domain/devices/controller[@type='pci']/target/@chassis",
-    );
+    let ctxt = Context::new(domxml_doc).unwrap();
 
-    if let Ok(sxd_xpath::Value::Nodeset(ns)) = r {
-        for node in ns.iter() {
-            if let sxd_xpath::nodeset::Node::Attribute(val) = node {
-                pcie_chassis.push(val.value().parse().unwrap());
-            }
-        }
+    let nodes = ctxt
+        .evaluate("//domain/devices/controller[@type='pci']/target/@chassis")
+        .unwrap();
+
+    for node in &nodes.get_nodes_as_vec() {
+        pcie_chassis.push(node.get_content().parse().unwrap());
     }
 
     // Firstly, remove obviously taken root ports
     if !pcie_chassis.is_empty() {
-        let r = evaluate_xpath(domxml, "//domain/devices//address[@type='pci']/@bus");
+        let nodes = ctxt
+            .evaluate("//domain/devices//address[@type='pci']/@bus")
+            .unwrap();
 
-        if let Ok(sxd_xpath::Value::Nodeset(ns)) = r {
-            for node in ns.iter() {
-                if let sxd_xpath::nodeset::Node::Attribute(val) = node {
-                    let bus: u64 = parse_int(val.value()).unwrap();
-                    let mut i = 0;
+        for node in &nodes.get_nodes_as_vec() {
+            let bus: u64 = parse_int(&node.get_content())?;
+            let mut i = 0;
 
-                    while i < pcie_chassis.len() {
-                        if pcie_chassis[i] != bus {
-                            i += 1;
-                            continue;
-                        }
-
-                        pcie_chassis.remove(i);
-                    }
+            while i < pcie_chassis.len() {
+                if pcie_chassis[i] != bus {
+                    i += 1;
+                    continue;
                 }
+
+                pcie_chassis.remove(i);
             }
         }
     }
@@ -355,7 +405,10 @@ fn check_pcie_root_ports(
 
     if pcie_chassis.is_empty() {
         vl.add_warning(
-            &va.tags,
+            va.tags
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>(),
             WarningDomain::Domain,
             WarningLevel::Notice,
             String::from("No free PCIe root ports found, hotplug might be not possible"),

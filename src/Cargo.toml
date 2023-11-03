@@ -17,7 +17,7 @@ capi = []
 [dependencies]
 enum-display-derive = "0.1.1"
 pkg-version = "1.0.0"
-sxd-document = "0.3.2"
-sxd-xpath = "0.4.2"
+libxml = "0.3.3"
 thiserror = "1.0.48"
-virt={ git="https://gitlab.com/libvirt/libvirt-rust.git", rev="c7ee11c7585897f343d1c5ca9adc344bd9d21007" }
+virt = { git="https://gitlab.com/libvirt/libvirt-rust.git", rev="b0506ed9cca960dd5f7679bca434a19d4b5cfc1d" }
+mlua = { version="0.9.1", features=["lua54"] }

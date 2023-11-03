@@ -89,7 +89,8 @@ pub extern "C" fn virt_lint_capabilities_set(
         None
     } else {
         let c_str = unsafe { CStr::from_ptr(capsxml) };
-        Some(c_str.to_str().unwrap())
+        let c_string = String::from(c_str.to_str().unwrap());
+        Some(c_string)
     };
 
     if let Err(x) = vl.capabilities_set(new_capsxml) {
@@ -127,10 +128,10 @@ pub extern "C" fn virt_lint_domain_capabilities_add(
     check_not_null!(domcapsxml, err, -1);
 
     let vl = unsafe { &mut *vl };
-    let c_str = unsafe { CStr::from_ptr(domcapsxml) };
-    let domcapsxml = c_str.to_str().unwrap();
+    let domcapsxml_str = unsafe { CStr::from_ptr(domcapsxml) };
+    let domcapsxml_string = String::from(domcapsxml_str.to_str().unwrap());
 
-    if let Err(x) = vl.domain_capabilities_add(domcapsxml) {
+    if let Err(x) = vl.domain_capabilities_add(domcapsxml_string) {
         err_set(err, x);
         return -1;
     }
@@ -160,7 +161,7 @@ pub extern "C" fn virt_lint_validate(
     for i in 0..ntags {
         let t = unsafe { *tags.offset(i.try_into().unwrap()) };
         let t_str = unsafe { CStr::from_ptr(t) };
-        let t_string = t_str.to_str().unwrap().to_owned();
+        let t_string = String::from(t_str.to_str().unwrap());
         tags_vec.push(t_string);
     }
 
@@ -181,7 +182,14 @@ pub extern "C" fn virt_lint_list_tags(
 
     check_not_null!(tags, err, -1);
 
-    let mut v: Vec<_> = VirtLint::list_validator_tags()
+    let ret = VirtLint::list_validator_tags();
+    if let Err(x) = ret {
+        err_set(err, x);
+        return -1;
+    }
+
+    let mut v: Vec<_> = ret
+        .unwrap()
         .iter()
         .map(|s| CString::new(s.as_str()).unwrap().into_raw())
         .collect();
@@ -208,7 +216,7 @@ pub struct CVirtLintWarning {
 
 #[no_mangle]
 pub extern "C" fn virt_lint_get_warnings(
-    vl: *const VirtLint,
+    vl: *mut VirtLint,
     warnings: *mut *mut CVirtLintWarning,
     err: *mut *mut VirtLintError,
 ) -> isize {
@@ -217,7 +225,7 @@ pub extern "C" fn virt_lint_get_warnings(
     check_not_null!(vl, err, -1);
     check_not_null!(warnings, err, -1);
 
-    let vl = unsafe { &*vl };
+    let vl = unsafe { &mut *vl };
     let mut c_warn: Vec<CVirtLintWarning> = Vec::new();
 
     let warn = vl.warnings();

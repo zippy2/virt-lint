@@ -15,5 +15,5 @@ doc = false
 
 [dependencies]
 clap = { version = "4.4.4", features = ["derive"] }
-virt={ git="https://gitlab.com/libvirt/libvirt-rust.git", rev="c7ee11c7585897f343d1c5ca9adc344bd9d21007" }
+virt = { git="https://gitlab.com/libvirt/libvirt-rust.git", rev="b0506ed9cca960dd5f7679bca434a19d4b5cfc1d" }
 virt-lint = { path = "../src" }

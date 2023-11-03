@@ -10,11 +10,20 @@ pub enum VirtLintError {
     Libvirt(#[from] virt::error::Error),
 
     #[error("Unable to parse XML: {0}")]
-    XMLParsing(#[from] sxd_document::parser::Error),
+    XMLParsing(#[from] libxml::parser::XmlParseError),
 
     #[error("Unknown validator tag: {0}")]
     UnknownValidatorTag(String),
 
     #[error("Invalid argument: {0}")]
     InvalidArgument(&'static str),
+
+    #[error("I/O error: {0}")]
+    IOError(String),
+
+    #[error("Lua error: {0}")]
+    LuaError(#[from] mlua::prelude::LuaError),
+
+    #[error(transparent)]
+    ParseIntError(#[from] std::num::ParseIntError),
 }
