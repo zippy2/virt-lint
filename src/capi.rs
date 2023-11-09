@@ -1,7 +1,6 @@
 /* SPDX-License-Identifier: LGPL-3.0-or-later */
 
 use pkg_version::*;
-use std::ffi::CStr;
 use std::ffi::CString;
 use std::mem::ManuallyDrop;
 use virt::sys;
@@ -20,6 +19,20 @@ macro_rules! check_not_null {
             err_set($error, VirtLintError::InvalidArgument(stringify!($var)));
             return $ret;
         }
+    };
+}
+
+macro_rules! c_chars_to_string {
+    ($x:expr) => {{
+        ::std::ffi::CStr::from_ptr($x)
+            .to_string_lossy()
+            .into_owned()
+    }};
+}
+
+macro_rules! string_to_mut_c_chars {
+    ($x:expr) => {
+        ::std::ffi::CString::new($x).unwrap().into_raw() as *mut ::std::ffi::c_char
     };
 }
 
@@ -53,7 +66,7 @@ pub extern "C" fn virt_lint_error_get_message(err: *const VirtLintError) -> *mut
         unsafe { &*err }.to_string()
     };
 
-    CString::new(msg).unwrap().into_raw()
+    string_to_mut_c_chars!(msg)
 }
 
 #[no_mangle]
@@ -88,9 +101,7 @@ pub extern "C" fn virt_lint_capabilities_set(
     let new_capsxml = if capsxml.is_null() {
         None
     } else {
-        let c_str = unsafe { CStr::from_ptr(capsxml) };
-        let c_string = String::from(c_str.to_str().unwrap());
-        Some(c_string)
+        Some(unsafe { c_chars_to_string!(capsxml) })
     };
 
     if let Err(x) = vl.capabilities_set(new_capsxml) {
@@ -128,8 +139,7 @@ pub extern "C" fn virt_lint_domain_capabilities_add(
     check_not_null!(domcapsxml, err, -1);
 
     let vl = unsafe { &mut *vl };
-    let domcapsxml_str = unsafe { CStr::from_ptr(domcapsxml) };
-    let domcapsxml_string = String::from(domcapsxml_str.to_str().unwrap());
+    let domcapsxml_string = unsafe { c_chars_to_string!(domcapsxml) };
 
     if let Err(x) = vl.domain_capabilities_add(domcapsxml_string) {
         err_set(err, x);
@@ -154,18 +164,16 @@ pub extern "C" fn virt_lint_validate(
     check_not_null!(domxml, err, -1);
 
     let vl = unsafe { &mut *vl };
-    let c_str = unsafe { CStr::from_ptr(domxml) };
-    let domxml = c_str.to_str().unwrap();
+    let domxml_string = unsafe { c_chars_to_string!(domxml) };
 
     let mut tags_vec = Vec::with_capacity(ntags);
     for i in 0..ntags {
         let t = unsafe { *tags.offset(i.try_into().unwrap()) };
-        let t_str = unsafe { CStr::from_ptr(t) };
-        let t_string = String::from(t_str.to_str().unwrap());
+        let t_string = unsafe { c_chars_to_string!(t) };
         tags_vec.push(t_string);
     }
 
-    if let Err(x) = vl.validate(domxml, &tags_vec, error_on_no_connect) {
+    if let Err(x) = vl.validate(&domxml_string, &tags_vec, error_on_no_connect) {
         err_set(err, x);
         return -1;
     }
@@ -190,8 +198,8 @@ pub extern "C" fn virt_lint_list_tags(
 
     let mut v: Vec<_> = ret
         .unwrap()
-        .iter()
-        .map(|s| CString::new(s.as_str()).unwrap().into_raw())
+        .into_iter()
+        .map(|s| string_to_mut_c_chars!(s))
         .collect();
 
     v.shrink_to_fit();
@@ -240,7 +248,7 @@ pub extern "C" fn virt_lint_get_warnings(
         let mut v: Vec<_> = w
             .tags
             .iter()
-            .map(|s| CString::new(s.as_str()).unwrap().into_raw())
+            .map(|s| string_to_mut_c_chars!(s.as_str()))
             .collect();
         v.shrink_to_fit();
 
@@ -251,7 +259,7 @@ pub extern "C" fn virt_lint_get_warnings(
             ntags: me.len(),
             domain: w.domain,
             level: w.level,
-            msg: CString::new(w.msg.as_str()).unwrap().into_raw(),
+            msg: string_to_mut_c_chars!(w.msg.as_str()),
         })
     });
 
