@@ -63,7 +63,7 @@ CRATES="
 fi
 
 declare -A GIT_CRATES=(
-	[virt]="https://gitlab.com/libvirt/libvirt-rust.git;c7ee11c7585897f343d1c5ca9adc344bd9d21007;cargo_home/git/checkouts/libvirt-rust-a02c7639fc7cb7e7/c7ee11c/"
+	[virt]="https://gitlab.com/libvirt/libvirt-rust.git;b0506ed9cca960dd5f7679bca434a19d4b5cfc1d;cargo_home/git/checkouts/libvirt-rust-a02c7639fc7cb7e7/b0506ed/"
 )
 
 inherit edo cargo go-module
