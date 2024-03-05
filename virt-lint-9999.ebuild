@@ -7,58 +7,55 @@ EAPI=8
 
 if [[ ${PV} != *9999 ]]; then
 CRATES="
-	anstream@0.5.0
-	anstyle@1.0.3
-	anstyle-parse@0.2.1
-	anstyle-query@1.0.0
-	anstyle-wincon@2.1.0
+	anstream@0.6.13
+	anstyle@1.0.6
+	anstyle-parse@0.2.3
+	anstyle-query@1.0.2
+	anstyle-wincon@3.0.2
 	autocfg@1.1.0
-	bstr@1.7.0
-	cc@1.0.83
+	bstr@1.9.1
+	cc@1.0.89
 	cfg-if@1.0.0
-	clap@4.4.4
-	clap_builder@4.4.4
-	clap_derive@4.4.2
-	clap_lex@0.5.1
+	clap@4.5.1
+	clap_builder@4.5.1
+	clap_derive@4.5.0
+	clap_lex@0.7.0
 	colorchoice@1.0.0
 	enum-display-derive@0.1.1
 	heck@0.4.1
-	libc@0.2.148
-	memchr@2.6.4
-	mlua@0.9.1
-	mlua-sys@0.3.2
-	num-traits@0.2.17
-	once_cell@1.18.0
-	peresil@0.3.0
-	pkg-config@0.3.27
+	libc@0.2.153
+	libxml@0.3.3
+	memchr@2.7.1
+	mlua@0.9.6
+	mlua-sys@0.5.1
+	num-traits@0.2.18
+	once_cell@1.19.0
+	pkg-config@0.3.30
 	pkg-version@1.0.0
 	pkg-version-impl@0.1.1
 	proc-macro-hack@0.5.20+deprecated
-	proc-macro2@1.0.67
-	quick-error@1.2.3
-	quote@1.0.33
+	proc-macro2@1.0.78
+	quote@1.0.35
 	rustc-hash@1.1.0
-	serde@1.0.189
-	serde_derive@1.0.189
-	strsim@0.10.0
-	sxd-document@0.3.2
-	sxd-xpath@0.4.2
+	serde@1.0.197
+	serde_derive@1.0.197
+	strsim@0.11.0
 	syn@1.0.109
-	syn@2.0.37
-	thiserror@1.0.48
-	thiserror-impl@1.0.48
-	typed-arena@1.7.0
+	syn@2.0.52
+	thiserror@1.0.57
+	thiserror-impl@1.0.57
 	unicode-ident@1.0.12
 	utf8parse@0.2.1
-	windows-sys@0.48.0
-	windows-targets@0.48.5
-	windows_aarch64_gnullvm@0.48.5
-	windows_aarch64_msvc@0.48.5
-	windows_i686_gnu@0.48.5
-	windows_i686_msvc@0.48.5
-	windows_x86_64_gnu@0.48.5
-	windows_x86_64_gnullvm@0.48.5
-	windows_x86_64_msvc@0.48.5
+	vcpkg@0.2.15
+	windows-sys@0.52.0
+	windows-targets@0.52.4
+	windows_aarch64_gnullvm@0.52.4
+	windows_aarch64_msvc@0.52.4
+	windows_i686_gnu@0.52.4
+	windows_i686_msvc@0.52.4
+	windows_x86_64_gnu@0.52.4
+	windows_x86_64_gnullvm@0.52.4
+	windows_x86_64_msvc@0.52.4
 "
 fi
 
