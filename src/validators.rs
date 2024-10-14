@@ -13,7 +13,7 @@ type ValidatorCB = dyn Fn(&mut VirtLint, &str, &Document, &Validator) -> VirtLin
 
 struct Validator {
     cb: &'static ValidatorCB,
-    tags: Vec<&'static str>,
+    tags: HashSet<&'static str>,
 }
 
 pub struct Validators {
@@ -26,19 +26,19 @@ impl Validators {
         let validators = vec![
             Validator {
                 cb: &check_numa,
-                tags: vec!["TAG_1", "TAG_2"],
+                tags: HashSet::from(["TAG_1", "TAG_2"]),
             },
             Validator {
                 cb: &check_numa_free,
-                tags: vec!["TAG_2"],
+                tags: HashSet::from(["TAG_2"]),
             },
             Validator {
                 cb: &check_node_kvm,
-                tags: vec!["TAG_1", "TAG_3"],
+                tags: HashSet::from(["TAG_1", "TAG_3"]),
             },
             Validator {
                 cb: &check_pcie_root_ports,
-                tags: vec!["TAG_4"],
+                tags: HashSet::from(["TAG_4"]),
             },
         ];
 
