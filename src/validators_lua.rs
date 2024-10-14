@@ -230,7 +230,7 @@ fn get_paths_for_tag(
 
 fn get_validators(
     prefix: &PathBuf,
-    tags: &Vec<String>,
+    tags: &[String],
     filename_prefix: &OsString,
     ext: &OsString,
 ) -> Vec<PathBuf> {
@@ -322,7 +322,7 @@ impl ValidatorsLua {
 
     pub fn validate(
         &self,
-        tags: &Vec<String>,
+        tags: &[String],
         vl: &mut VirtLint,
         domxml: &str,
         domxml_doc: &Document,

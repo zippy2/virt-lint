@@ -253,7 +253,7 @@ impl VirtLint {
     pub fn validate(
         &mut self,
         domxml: &str,
-        validator_tags: &Vec<String>,
+        validator_tags: &[String],
         error_on_no_connect: bool,
     ) -> VirtLintResult<()> {
         let mut validators = Validators::new();

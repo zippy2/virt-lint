@@ -21,8 +21,7 @@ impl PartialEq for Validator {
         let ours = (self.cb) as *const ValidatorCB;
         let theirs = (other.cb) as *const ValidatorCB;
 
-        #[allow(clippy::vtable_address_comparisons)]
-        if ours != theirs || self.tags.len() != other.tags.len() {
+        if !std::ptr::addr_eq(ours, theirs) || self.tags.len() != other.tags.len() {
             return false;
         }
 
@@ -103,7 +102,7 @@ impl Validators {
         Ok(())
     }
 
-    fn get_validators(&self, tags: &Vec<String>) -> Vec<&Validator> {
+    fn get_validators(&self, tags: &[String]) -> Vec<&Validator> {
         let mut ret: Vec<&Validator> = Vec::new();
 
         if tags.is_empty() {
@@ -125,7 +124,7 @@ impl Validators {
 
     pub fn validate(
         &mut self,
-        tags: &Vec<String>,
+        tags: &[String],
         vl: &mut VirtLint,
         domxml: &str,
     ) -> VirtLintResult<()> {
