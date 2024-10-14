@@ -86,6 +86,10 @@ impl VirtLintConnect {
     fn new(conn: &Connect) -> Self {
         Self { conn: conn.clone() }
     }
+
+    pub fn into_connect(self) -> Connect {
+        self.conn.clone()
+    }
 }
 
 #[derive(Debug, Clone)]
