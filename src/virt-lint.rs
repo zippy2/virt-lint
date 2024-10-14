@@ -4,6 +4,7 @@
 mod capi;
 mod caps_cache;
 mod errors;
+mod helpers;
 #[cfg(test)]
 mod tests;
 mod utils;
