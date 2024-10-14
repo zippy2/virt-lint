@@ -17,7 +17,7 @@ rust-build:
 	cargo build
 
 rust-cbuild:
-	cargo cbuild --prefix="/usr" --libdir="/usr/lib64"
+	cargo cbuild --prefix="/usr" --libdir="/usr/lib64" --manifest-path=src/Cargo.toml
 
 rust-check: rust
 	cargo test

@@ -15,7 +15,7 @@ If you want to build `C` language bindings, you will need
 [cargo-c](https://github.com/lu-zero/cargo-c). Then you can just run:
 
 ```shell
-cargo cbuild
+cargo cbuild --manifest-path=src/Cargo.toml
 ```
 
 There is even a small `C` command line utility that demonstrates use of C

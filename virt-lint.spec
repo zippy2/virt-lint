@@ -71,7 +71,7 @@ tar -xoaf %{SOURCE1}
 #CARGO_HOME=".cargo" cargo cbuild
 
 %install
-CARGO_HOME=".cargo" cargo cinstall --destdir=%{buildroot} --prefix=%{_prefix} --libdir=%{_libdir}
+CARGO_HOME=".cargo" cargo cinstall --destdir=%{buildroot} --prefix=%{_prefix} --libdir=%{_libdir} --manifest-path=src/Cargo.toml
 make install-data DESTDIR=%{buildroot} prefix=%{_prefix}
 
 %files

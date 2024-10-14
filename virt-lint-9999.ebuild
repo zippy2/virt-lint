@@ -111,6 +111,7 @@ src_unpack() {
 src_compile() {
 	export CARGO_HOME="${ECARGO_HOME}"
 	local cargoargs=(
+		--manifest-path=src/Cargo.toml
 		--library-type=cdylib
 		--prefix=/usr
 		--libdir="/usr/$(get_libdir)"
@@ -125,6 +126,7 @@ src_compile() {
 src_install() {
 	export CARGO_HOME="${ECARGO_HOME}"
 	local cargoargs=(
+		--manifest-path=src/Cargo.toml
 		--library-type=cdylib
 		--prefix=/usr
 		--libdir="/usr/$(get_libdir)"
