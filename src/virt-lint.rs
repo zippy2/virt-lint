@@ -10,6 +10,7 @@ mod tests;
 mod utils;
 mod validators;
 mod validators_lua;
+mod validators_python;
 
 use crate::caps_cache::*;
 use crate::errors::*;

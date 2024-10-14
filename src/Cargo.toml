@@ -20,5 +20,6 @@ pkg-version = "1.0.0"
 libxml = "0.3.3"
 thiserror = "1.0.48"
 virt = "0.4.1"
+virt-sys = "0.3.0"
 mlua = { version="0.9.1", features=["lua54"] }
 pyo3 = "0.22.3"

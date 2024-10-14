@@ -2,6 +2,7 @@
 
 use crate::utils::*;
 use crate::validators_lua::*;
+use crate::validators_python::*;
 use crate::*;
 use libxml::parser::Parser;
 use libxml::tree::Document;
@@ -19,6 +20,7 @@ struct Validator {
 pub struct Validators {
     validators: Vec<Validator>,
     lua: ValidatorsLua,
+    python: ValidatorsPython,
 }
 
 impl Validators {
@@ -42,26 +44,38 @@ impl Validators {
             },
         ];
 
-        let lua = ValidatorsLua::new(paths, "check_", "lua");
+        let lua = ValidatorsLua::new(paths.clone(), "check_", "lua");
+        let python = ValidatorsPython::new(paths, "check_", "py");
 
-        Self { validators, lua }
+        Self {
+            validators,
+            lua,
+            python,
+        }
     }
 
     pub fn new() -> Self {
-        let mut lua_paths = vec![
-            PathBuf::from("/usr/share/virt-lint/validators_lua"),
-            PathBuf::from("./validators_lua"),
-        ];
+        let mut paths = Vec::new();
 
-        if let Some(paths) = std::env::var_os("VIRT_LINT_LUA_PATH") {
-            lua_paths.clear();
-
-            for path in std::env::split_paths(&paths) {
-                lua_paths.push(path);
-            }
+        if let Some(lua_paths) = std::env::var_os("VIRT_LINT_LUA_PATH") {
+            paths.extend(std::env::split_paths(&lua_paths))
+        } else {
+            paths.extend([
+                PathBuf::from("/usr/share/virt-lint/validators_lua"),
+                PathBuf::from("./validators_lua"),
+            ]);
         }
 
-        Self::new_paths(lua_paths)
+        if let Some(python_paths) = std::env::var_os("VIRT_LINT_PYTHON_PATH") {
+            paths.extend(std::env::split_paths(&python_paths));
+        } else {
+            paths.extend([
+                PathBuf::from("/usr/share/virt-lint/validators_python"),
+                PathBuf::from("./validators_python"),
+            ]);
+        }
+
+        Self::new_paths(paths)
     }
 
     pub fn list_tags(&mut self) -> VirtLintResult<HashSet<String>> {
@@ -74,6 +88,8 @@ impl Validators {
         }
 
         tags.extend(self.lua.list_tags()?);
+        tags.extend(self.python.list_tags()?);
+
         Ok(tags)
     }
 
@@ -122,6 +138,9 @@ impl Validators {
         let validators = self.get_validators(tags);
 
         self.lua.validate(tags, vl.clone(), domxml, &domxml_doc)?;
+
+        self.python
+            .validate(tags, vl.clone(), domxml, &domxml_doc)?;
 
         let mut vl_locked = vl.lock().expect("Mutex poisoned");
         for validator in validators.iter() {

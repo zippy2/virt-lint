@@ -21,8 +21,14 @@ pub enum VirtLintError {
     #[error("I/O error: {0}")]
     IOError(String),
 
+    #[error("I/O error: {0}")]
+    StdIOError(#[from] std::io::Error),
+
     #[error("Lua error: {0}")]
     LuaError(#[from] mlua::prelude::LuaError),
+
+    #[error("Python error: {0}")]
+    PythonError(#[from] pyo3::PyErr),
 
     #[error(transparent)]
     ParseIntError(#[from] std::num::ParseIntError),
