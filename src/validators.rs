@@ -16,19 +16,6 @@ struct Validator {
     tags: Vec<&'static str>,
 }
 
-impl PartialEq for Validator {
-    fn eq(&self, other: &Validator) -> bool {
-        let ours = (self.cb) as *const ValidatorCB;
-        let theirs = (other.cb) as *const ValidatorCB;
-
-        if !std::ptr::addr_eq(ours, theirs) || self.tags.len() != other.tags.len() {
-            return false;
-        }
-
-        self.tags.iter().all(|t| other.tags.contains(t))
-    }
-}
-
 pub struct Validators {
     validators: Vec<Validator>,
     lua: ValidatorsLua,
@@ -103,23 +90,22 @@ impl Validators {
     }
 
     fn get_validators(&self, tags: &[String]) -> Vec<&Validator> {
-        let mut ret: Vec<&Validator> = Vec::new();
-
         if tags.is_empty() {
-            self.validators.iter().for_each(|v| {
-                ret.push(v);
-            });
+            self.validators.iter().collect()
         } else {
-            for tag in tags.iter() {
-                for validator in &self.validators {
-                    if validator.tags.contains(&tag.as_str()) && !ret.contains(&validator) {
-                        ret.push(validator);
-                    }
-                }
-            }
+            /*
+             * Cannot do `.contains() on a slice of &String with &'static str
+             * hence the .iter().any(|it| it == t)
+             * Cannot do `.contains() on a hashset of &'static str with String
+             * hence the .iter().any(|t| tags.iter().any(|it| it == t)))
+             *
+             * See https://doc.rust-lang.org/std/primitive.slice.html#method.contains
+             */
+            self.validators
+                .iter()
+                .filter(|v| v.tags.iter().any(|t| tags.iter().any(|it| it == t)))
+                .collect()
         }
-
-        ret
     }
 
     pub fn validate(
