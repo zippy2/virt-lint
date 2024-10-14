@@ -22,6 +22,7 @@ use virt::connect::Connect;
 #[macro_use]
 extern crate enum_display_derive;
 use std::fmt::Display;
+use std::sync::{Arc, Mutex};
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Display, PartialEq, PartialOrd, Ord, Eq)]
@@ -46,7 +47,7 @@ pub enum WarningLevel {
     Notice,
 }
 
-#[derive(Debug, PartialEq, PartialOrd, Ord, Eq)]
+#[derive(Clone, Debug, PartialEq, PartialOrd, Ord, Eq)]
 pub struct VirtLintWarning {
     tags: Vec<String>,
     domain: WarningDomain,
@@ -64,7 +65,7 @@ impl VirtLintWarning {
         }
     }
 
-    pub fn get(&self) -> (&Vec<String>, &WarningDomain, &WarningLevel, &String) {
+    pub fn get(&self) -> (&[String], &WarningDomain, &WarningLevel, &String) {
         (&self.tags, &self.domain, &self.level, &self.msg)
     }
 }
@@ -87,12 +88,12 @@ impl VirtLintConnect {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct VirtLint {
     conn: Option<VirtLintConnect>,
-    caps_cache: CapsCache,
-    domcaps_cache: DomCapsCache,
-    warnings: Vec<VirtLintWarning>,
+    caps_cache: Arc<Mutex<CapsCache>>,
+    domcaps_cache: Arc<Mutex<DomCapsCache>>,
+    warnings: Arc<Mutex<Vec<VirtLintWarning>>>,
     error_on_no_connect: bool,
 }
 
@@ -120,9 +121,9 @@ impl VirtLint {
     pub fn new(conn: Option<&Connect>) -> Self {
         Self {
             conn: conn.map(VirtLintConnect::new),
-            caps_cache: CapsCache::new(),
-            domcaps_cache: DomCapsCache::new(),
-            warnings: Vec::new(),
+            caps_cache: Arc::new(Mutex::new(CapsCache::new())),
+            domcaps_cache: Arc::new(Mutex::new(DomCapsCache::new())),
+            warnings: Arc::new(Mutex::new(Vec::new())),
             error_on_no_connect: false,
         }
     }
@@ -142,9 +143,13 @@ impl VirtLint {
     /// Intended to be used by validators.
     /// If the offline mode was requested and no capabilities were set beforehand (via
     /// [`capabilities_set()`]) an error is returned.
-    fn capabilities_get(&mut self) -> VirtLintResult<Option<&String>> {
-        self.caps_cache
-            .get(self.conn.as_ref(), self.error_on_no_connect)
+    fn capabilities_get(&mut self) -> VirtLintResult<Option<String>> {
+        Ok(self
+            .caps_cache
+            .lock()
+            .expect("Mutex poisoned")
+            .get(self.conn.as_ref(), self.error_on_no_connect)?
+            .map(String::to_string))
     }
 
     /// Set capabilities.
@@ -157,7 +162,7 @@ impl VirtLint {
     ///
     /// [`new()`]: VirtLint::new
     pub fn capabilities_set(&mut self, capsxml: Option<String>) -> VirtLintResult<()> {
-        self.caps_cache.set(capsxml);
+        self.caps_cache.lock().expect("Mutex poisoned").set(capsxml);
         Ok(())
     }
 
@@ -171,7 +176,7 @@ impl VirtLint {
     fn domain_capabilities_get(
         &mut self,
         domxml: Option<&Document>,
-    ) -> VirtLintResult<Option<&String>> {
+    ) -> VirtLintResult<Option<String>> {
         let mut emulator = None;
         let mut arch = None;
         let mut machine = None;
@@ -184,19 +189,25 @@ impl VirtLint {
             virttype = xpath_eval_or_none(domxml_doc, "//domain/@type");
         }
 
-        self.domcaps_cache.get(
-            self.conn.as_ref(),
-            self.error_on_no_connect,
-            emulator,
-            arch,
-            machine,
-            virttype,
-        )
+        let mut cache = self.domcaps_cache.lock().expect("Mutex poisoned");
+
+        let caps = cache
+            .get(
+                self.conn.as_ref(),
+                self.error_on_no_connect,
+                emulator,
+                arch,
+                machine,
+                virttype,
+            )?
+            .map(String::to_string);
+
+        Ok(caps)
     }
 
     /// Clear any previously set domain capabilities.
     pub fn domain_capabilities_clear(&mut self) {
-        self.domcaps_cache.clear();
+        self.domcaps_cache.lock().expect("Mutex poisoned").clear();
     }
 
     /// Add new domain capabilities into internal cache.
@@ -209,7 +220,10 @@ impl VirtLint {
     ///
     /// [`new()`]: VirtLint::new
     pub fn domain_capabilities_add(&mut self, domcapsxml: String) -> VirtLintResult<()> {
-        self.domcaps_cache.add(domcapsxml)
+        self.domcaps_cache
+            .lock()
+            .expect("Mutex poisoned")
+            .add(domcapsxml)
     }
 
     /// Add new warning
@@ -217,15 +231,17 @@ impl VirtLint {
     /// Intended to be used by validators.
     fn add_warning(
         &mut self,
-        mut tags: Vec<String>,
+        tags: Vec<String>,
         domain: WarningDomain,
         level: WarningLevel,
         msg: String,
     ) {
+        let mut tags = tags.clone();
         tags.sort();
+
         let w = VirtLintWarning::new(tags, domain, level, msg);
 
-        self.warnings.push(w);
+        self.warnings.lock().expect("Mutex poisoned").push(w);
     }
 
     /// Validate given domain XML against set of internal rules.
@@ -260,11 +276,11 @@ impl VirtLint {
         let mut validators = Validators::new();
 
         // Clear warnings from previous runs
-        self.warnings.clear();
+        self.warnings.lock().expect("Mutex poisoned").clear();
 
         self.error_on_no_connect = error_on_no_connect;
 
-        validators.validate(validator_tags, self, domxml)
+        validators.validate(validator_tags, Arc::new(Mutex::new(self.clone())), domxml)
     }
 
     /// List all validator tags.
@@ -284,8 +300,9 @@ impl VirtLint {
     /// See [`validate()`].
     ///
     /// [`validate()`]: VirtLint::validate
-    pub fn warnings(&mut self) -> &Vec<VirtLintWarning> {
-        self.warnings.sort();
-        &self.warnings
+    pub fn warnings(&self) -> Vec<VirtLintWarning> {
+        let mut warnings = self.warnings.lock().expect("Mutex poisoned").clone();
+        warnings.sort();
+        warnings
     }
 }

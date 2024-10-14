@@ -111,7 +111,7 @@ impl Validators {
     pub fn validate(
         &mut self,
         tags: &[String],
-        vl: &mut VirtLint,
+        vl: Arc<Mutex<VirtLint>>,
         domxml: &str,
     ) -> VirtLintResult<()> {
         let parser = Parser::default();
@@ -121,10 +121,11 @@ impl Validators {
 
         let validators = self.get_validators(tags);
 
-        self.lua.validate(tags, vl, domxml, &domxml_doc)?;
+        self.lua.validate(tags, vl.clone(), domxml, &domxml_doc)?;
 
+        let mut vl_locked = vl.lock().expect("Mutex poisoned");
         for validator in validators.iter() {
-            (validator.cb)(vl, domxml, &domxml_doc, validator)?;
+            (validator.cb)(&mut vl_locked, domxml, &domxml_doc, validator)?;
         }
 
         Ok(())

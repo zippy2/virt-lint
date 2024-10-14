@@ -77,7 +77,7 @@ fn domcaps_xpath(
 }
 
 fn caps_xml(_: &Lua, vlud: &mut ValidatorsLuaUserData, _: ()) -> Result<Option<String>, Error> {
-    Ok(vlud.vl.capabilities_get().into_lua_err()?.cloned())
+    vlud.vl.capabilities_get().into_lua_err()
 }
 
 fn dom_xml(_: &Lua, vlud: &mut ValidatorsLuaUserData, _: ()) -> Result<String, Error> {
@@ -85,11 +85,9 @@ fn dom_xml(_: &Lua, vlud: &mut ValidatorsLuaUserData, _: ()) -> Result<String, E
 }
 
 fn domcaps_xml(_: &Lua, vlud: &mut ValidatorsLuaUserData, _: ()) -> Result<Option<String>, Error> {
-    Ok(vlud
-        .vl
+    vlud.vl
         .domain_capabilities_get(Some(vlud.domxml_doc))
-        .into_lua_err()?
-        .cloned())
+        .into_lua_err()
 }
 
 fn xpath_eval(
@@ -290,15 +288,16 @@ impl ValidatorsLua {
     pub fn validate(
         &self,
         tags: &[String],
-        vl: &mut VirtLint,
+        vl: Arc<Mutex<VirtLint>>,
         domxml: &str,
         domxml_doc: &Document,
     ) -> VirtLintResult<()> {
         for p in self.prefix.iter() {
             let validators = get_validators(p, tags, &self.filename_prefix, &self.ext);
 
+            let mut vl_locked = vl.lock().expect("Mutex poisoned");
             for validator in validators {
-                validate_one(validator, p, vl, domxml, domxml_doc)?;
+                validate_one(validator, p, &mut vl_locked, domxml, domxml_doc)?;
             }
         }
 

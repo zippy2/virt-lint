@@ -38,7 +38,7 @@ fn test_empty() {
     let c = conn();
     {
         let vl = VirtLint::new(Some(&c));
-        assert!(vl.warnings.is_empty());
+        assert!(vl.warnings().is_empty());
     }
     close(c);
 }
@@ -81,10 +81,11 @@ fn test_simple() {
 
         assert!(vl.validate(&domxml, &Vec::new(), false).is_ok());
 
-        vl.warnings.sort();
+        let mut warnings = vl.warnings();
+        warnings.sort();
 
         assert_eq!(
-            vl.warnings,
+            warnings,
             vec![
                 VirtLintWarning::new(
                     vec![String::from("TAG_1"), String::from("TAG_2")],
@@ -151,10 +152,12 @@ fn test_offline_simple() {
     assert!(vl.domain_capabilities_add(domcapsxml).is_ok());
     assert!(vl.validate(&domxml, &Vec::new(), false).is_ok());
 
-    vl.warnings.sort();
+    let mut warnings = vl.warnings();
+
+    warnings.sort();
 
     assert_eq!(
-        vl.warnings,
+        warnings,
         vec![
             VirtLintWarning::new(
                 vec![String::from("TAG_1"), String::from("TAG_2")],
@@ -221,10 +224,12 @@ fn test_offline_with_error() {
         )
         .is_ok());
 
-    vl.warnings.sort();
+    let mut warnings = vl.warnings();
+
+    warnings.sort();
 
     assert_eq!(
-        vl.warnings,
+        warnings,
         vec![
             VirtLintWarning::new(
                 vec![String::from("TAG_1"), String::from("TAG_2")],
