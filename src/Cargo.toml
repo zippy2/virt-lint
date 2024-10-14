@@ -19,5 +19,5 @@ enum-display-derive = "0.1.1"
 pkg-version = "1.0.0"
 libxml = "0.3.3"
 thiserror = "1.0.48"
-virt = { git="https://gitlab.com/libvirt/libvirt-rust.git", rev="b0506ed9cca960dd5f7679bca434a19d4b5cfc1d" }
+virt = "0.4.1"
 mlua = { version="0.9.1", features=["lua54"] }

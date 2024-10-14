@@ -74,7 +74,7 @@ pub extern "C" fn virt_lint_new(conn: sys::virConnectPtr) -> *mut VirtLint {
     let mut rust_conn = None;
 
     if !conn.is_null() {
-        rust_conn = Some(Connect::new(conn));
+        rust_conn = Some(unsafe { Connect::from_ptr(conn) });
     }
 
     Box::into_raw(Box::new(VirtLint::new(rust_conn.as_ref())))
