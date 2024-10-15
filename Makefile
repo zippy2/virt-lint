@@ -10,14 +10,14 @@ all: rust c-build go-build
 #
 # After that, we can enable package.metadata.capi.library.versioning.
 rust: rust-build rust-cbuild
-	pushd target/*/debug/ && ln -sf libvirt_lint.so libvirt_lint.so.0; \
-	popd
 
 rust-build:
 	cargo build
 
 rust-cbuild:
 	cargo cbuild --prefix="/usr" --libdir="/usr/lib64" --manifest-path=src/Cargo.toml
+	pushd target/*/debug/ && ln -sf libvirt_lint.so libvirt_lint.so.0; \
+	popd
 
 rust-check: rust
 	cargo test
