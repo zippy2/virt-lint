@@ -5,7 +5,7 @@ use crate::*;
 use libxml::tree::Document;
 use pyo3::exceptions::PyAttributeError;
 use pyo3::prelude::*;
-use pyo3::types::{PyCapsule, PyDict};
+use pyo3::types::PyDict;
 use std::collections::HashSet;
 use std::ffi::OsString;
 use std::path::Path;
@@ -114,7 +114,7 @@ impl ValidatorPython {
         Ok(xpath_eval_nodeset_or_none(&domcaps_doc, &xpath))
     }
 
-    fn get_libvirt_conn_bad(&mut self, py: Python) -> PyResult<Option<PyObject>> {
+    fn get_libvirt_conn(&mut self, py: Python) -> PyResult<Option<PyObject>> {
         let conn = match self
             .vl
             .lock()
@@ -126,45 +126,15 @@ impl ValidatorPython {
             Some(c) => c,
         };
 
-        let name = std::ffi::CString::new("libvirt.virConnectPtr").expect("Internal naming issue");
         let ptr = conn.as_ptr();
-        unsafe {
-            virt_sys::virConnectRef(ptr);
-        }
-
-        let py_ptr = ptr.cast::<virt_sys::virConnectPtr>() as usize;
-        let capsule = PyCapsule::new_bound(py, py_ptr, Some(name))?;
-        dbg!(format!("0x{:x}", py_ptr));
-        dbg!(format!("0x{:x}", &capsule as *const _ as usize));
-
+        let py_ptr = ptr.cast::<virt_sys::virConnectPtr>() as *mut std::ffi::c_void;
+        let name = pyo3::ffi::c_str!("virConnectPtr");
+        let capsule = unsafe { pyo3::ffi::PyCapsule_New(py_ptr, name.as_ptr(), None) };
+        let capsule_bound = unsafe { Bound::from_owned_ptr(py, capsule) };
         let libvirt_python = py.import_bound("libvirt")?;
         let class = libvirt_python.getattr("virConnect")?;
 
-        class.call1((capsule,))?.extract()
-    }
-
-    fn get_libvirt_conn_also_bad(&mut self, py: Python) -> PyResult<Option<PyObject>> {
-        let libvirt_python = py.import_bound("libvirt")?;
-        let conn = match self
-            .vl
-            .lock()
-            .expect("Mutex poisoned")
-            .get_conn()?
-            .map(|c| c.into_connect())
-        {
-            None => return Ok(None),
-            Some(c) => c,
-        };
-        let name = std::ffi::CString::new("libvirt.virConnectPtr").expect("Internal naming issue");
-        let caps = PyCapsule::new_bound(py, 0usize, Some(name))?;
-        caps.set_context(conn.as_ptr() as _)?;
-        let class = libvirt_python.getattr("virConnect")?;
-        class.call1((caps,))?.extract()
-    }
-
-    fn get_libvirt_conn(&mut self, _py: Python) -> PyResult<Option<PyObject>> {
-        eprintln!("Not working yet, see the two functions above");
-        Ok(None)
+        class.call1((capsule_bound,))?.extract()
     }
 
     // Ehm, I was too lazy to wrap the i32
