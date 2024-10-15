@@ -14,7 +14,7 @@ rust: rust-build rust-cbuild
 
 rust-build:
 	cargo build
-	pushd target/debug/ && mv libvirt_lint_python.so virt_lint$(PYTAG); \
+	pushd target/debug/ && ln -sf libvirt_lint_python.so virt_lint$(PYTAG); \
 	popd
 
 rust-cbuild:
