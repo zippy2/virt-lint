@@ -1,5 +1,5 @@
 [package]
-name = "virt-lint"
+name = "virt_lint_python"
 description.workspace = true
 version.workspace = true
 authors.workspace = true
@@ -10,15 +10,9 @@ readme.workspace = true
 
 [lib]
 path = "virt-lint.rs"
-
-[features]
-capi = []
+crate-type = ["cdylib"]
 
 [dependencies]
-enum-display-derive = "0.1.1"
-pkg-version = "1.0.0"
-libxml = "0.3.3"
-thiserror = "1.0.48"
+virt-lint = { path = "../src" }
 virt = "0.4.1"
-mlua = { version="0.9.1", features=["lua54"] }
 pyo3 = "0.22.3"

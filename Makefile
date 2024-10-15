@@ -1,4 +1,5 @@
 VERSION ?= $(shell git describe --tags HEAD 2>/dev/null || echo "0.0.1")
+PYTAG = $(shell python -c 'import sysconfig; print(sysconfig.get_config_var("EXT_SUFFIX"))')
 prefix ?= /usr
 datarootdir ?= $(prefix)/share
 
@@ -13,6 +14,8 @@ rust: rust-build rust-cbuild
 
 rust-build:
 	cargo build
+	pushd target/debug/ && mv libvirt_lint_python.so virt_lint$(PYTAG); \
+	popd
 
 rust-cbuild:
 	cargo cbuild --prefix="/usr" --libdir="/usr/lib64" --manifest-path=src/Cargo.toml
@@ -36,6 +39,9 @@ go-run: go-build
 
 go-test:
 	$(MAKE) -C go/ test
+
+python-run: rust-build
+	$(MAKE) -C python/ run
 
 clean:
 	cargo clean

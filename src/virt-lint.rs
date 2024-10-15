@@ -3,7 +3,7 @@
 #[cfg(feature = "capi")]
 mod capi;
 mod caps_cache;
-mod errors;
+pub mod errors;
 mod helpers;
 #[cfg(test)]
 mod tests;

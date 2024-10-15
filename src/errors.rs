@@ -27,3 +27,9 @@ pub enum VirtLintError {
     #[error(transparent)]
     ParseIntError(#[from] std::num::ParseIntError),
 }
+
+impl From<VirtLintError> for pyo3::PyErr {
+    fn from(value: VirtLintError) -> Self {
+        pyo3::exceptions::PyRuntimeError::new_err(value.to_string())
+    }
+}
