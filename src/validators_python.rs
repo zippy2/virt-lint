@@ -119,8 +119,7 @@ impl ValidatorPython {
             .vl
             .lock()
             .expect("Mutex poisoned")
-            .get_conn()?
-            .map(|c| c.into_connect())
+            .get_virt_conn()
         {
             None => return Ok(None),
             Some(c) => c,

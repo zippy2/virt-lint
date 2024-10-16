@@ -87,10 +87,6 @@ impl VirtLintConnect {
     fn new(conn: &Connect) -> Self {
         Self { conn: conn.clone() }
     }
-
-    pub fn into_connect(self) -> Connect {
-        self.conn.clone()
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -141,6 +137,13 @@ impl VirtLint {
             return Err(VirtLintError::InvalidArgument("no connection"));
         }
         Ok(self.conn.clone())
+    }
+
+    /// Obtain the libvirt direct connection (virt::Connect).
+    ///
+    /// Intended to be used by validators.
+    pub fn get_virt_conn(&self) -> Option<Connect> {
+        self.conn.as_ref().map(|c| c.conn.clone())
     }
 
     /// Get capabilities.
