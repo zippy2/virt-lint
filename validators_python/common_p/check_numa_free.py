@@ -12,7 +12,6 @@ def check():
 
     for node in node_ids:
         node_free = conn.getCellsFreeMemory(int(node), 1)
-        return
 
         if node_free[0] > dom_mem:
             would_fit = True
