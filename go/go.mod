@@ -1,4 +1,4 @@
-module virt-lint
+module gitlab.com/MichalPrivoznik/virt-lint/go
 
 go 1.21.1
 

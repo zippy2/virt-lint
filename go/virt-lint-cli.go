@@ -8,7 +8,7 @@ import (
 	libvirt "libvirt.org/go/libvirt"
 	"os"
 	"path/filepath"
-	"virt-lint/virt-lint"
+	"gitlab.com/MichalPrivoznik/virt-lint/go/virt-lint"
 )
 
 func list_validator_tags() {

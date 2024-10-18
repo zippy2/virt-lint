@@ -7,7 +7,7 @@ import (
 	"os"
 	"reflect"
 	"testing"
-	"virt-lint/virt-lint"
+	"gitlab.com/MichalPrivoznik/virt-lint/go/virt-lint"
 )
 
 func TestMain(t *testing.T) {

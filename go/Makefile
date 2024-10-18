@@ -16,11 +16,11 @@ clean:
 	rm -f virt-lint-cli
 
 test: all
-	LD_LIBRARY_PATH="$(VIRTLINT_BASE)" PKG_CONFIG_PATH=$(VIRTLINT_BASE) go test virt-lint/virt-lint
+	LD_LIBRARY_PATH="$(VIRTLINT_BASE)" PKG_CONFIG_PATH=$(VIRTLINT_BASE) go test virt-lint/*
 
 fmt:
 	go fmt
-	go fmt virt-lint/virt-lint
+	go fmt virt-lint/*.go
 
 .PHONY: run
 run: all
