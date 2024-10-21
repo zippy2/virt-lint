@@ -22,6 +22,10 @@ fmt:
 	go fmt
 	go fmt virt-lint/*.go
 
+vet:
+	go vet
+	go vet virt-lint/*.go
+
 .PHONY: run
 run: all
 	LD_LIBRARY_PATH="$(VIRTLINT_BASE)" ./virt-lint-cli
