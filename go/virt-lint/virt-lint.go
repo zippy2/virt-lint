@@ -4,8 +4,9 @@ package VirtLint
 
 import (
 	"fmt"
-	libvirt "libvirt.org/go/libvirt"
 	"unsafe"
+
+	libvirt "libvirt.org/go/libvirt"
 )
 
 /*

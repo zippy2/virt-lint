@@ -5,10 +5,11 @@ package main
 import (
 	"fmt"
 	"io"
-	libvirt "libvirt.org/go/libvirt"
 	"os"
 	"path/filepath"
+
 	"gitlab.com/MichalPrivoznik/virt-lint/go/virt-lint"
+	libvirt "libvirt.org/go/libvirt"
 )
 
 func list_validator_tags() {

@@ -3,11 +3,12 @@
 package VirtLint_test
 
 import (
-	libvirt "libvirt.org/go/libvirt"
 	"os"
 	"reflect"
 	"testing"
+
 	"gitlab.com/MichalPrivoznik/virt-lint/go/virt-lint"
+	libvirt "libvirt.org/go/libvirt"
 )
 
 func TestMain(t *testing.T) {
