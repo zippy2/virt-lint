@@ -10,7 +10,7 @@ libvirt-mod:
 	go mod download libvirt.org/go/libvirt
 
 virt-lint-cli: virt-lint-cli.go virt-lint/virt-lint.go $(VIRTLINT_BASE)/virt_lint.h
-	PKG_CONFIG_PATH=$(VIRTLINT_BASE) go build $<
+	LD_LIBRARY_PATH="$(VIRTLINT_BASE)" PKG_CONFIG_PATH=$(VIRTLINT_BASE) go build $<
 
 clean:
 	rm -f virt-lint-cli
