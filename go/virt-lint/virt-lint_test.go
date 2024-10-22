@@ -14,6 +14,7 @@ import (
 func TestMain(t *testing.T) {
 	// TODO - switch to an absolute path, replaced at compile time
 	os.Setenv("VIRT_LINT_LUA_PATH", "../validators_lua:../../validators_lua")
+	os.Setenv("VIRT_LINT_PYTHON_PATH", "../validators_python:../../validators_python")
 }
 
 func getConn(t *testing.T) *libvirt.Connect {
@@ -67,7 +68,9 @@ func TestListTags(t *testing.T) {
 
 	expect := []string{"TAG_1", "TAG_2", "TAG_3", "TAG_4",
 		"common", "common/check_node_kvm", "common/check_numa",
-		"common/check_numa_free", "common/check_pcie_root_ports"}
+		"common/check_numa_free", "common/check_pcie_root_ports",
+		"common_p", "common_p/check_node_kvm", "common_p/check_numa",
+		"common_p/check_numa_free", "common_p/check_pcie_root_ports"}
 	if !reflect.DeepEqual(tags, expect) {
 		t.Errorf("Tags don't match:\nexpected = %v\ngot = %v", expect, tags)
 		return
@@ -118,6 +121,10 @@ func TestSimple(t *testing.T) {
 		VirtLint.VirtLintWarning{[]string{"common", "common/check_numa"},
 			VirtLint.DOMAIN, VirtLint.ERROR, "Domain would not fit into any host NUMA node"},
 		VirtLint.VirtLintWarning{[]string{"common", "common/check_numa_free"},
+			VirtLint.DOMAIN, VirtLint.ERROR, "Not enough free memory on any NUMA node"},
+		VirtLint.VirtLintWarning{[]string{"common_p", "common_p/check_numa"},
+			VirtLint.DOMAIN, VirtLint.ERROR, "Domain would not fit into any host NUMA node"},
+		VirtLint.VirtLintWarning{[]string{"common_p", "common_p/check_numa_free"},
 			VirtLint.DOMAIN, VirtLint.ERROR, "Not enough free memory on any NUMA node"},
 	}
 	if !reflect.DeepEqual(warn, expect) {
@@ -193,6 +200,8 @@ func TestOfflineSimple(t *testing.T) {
 			VirtLint.DOMAIN, VirtLint.ERROR, "Domain would not fit into any host NUMA node"},
 		VirtLint.VirtLintWarning{[]string{"common", "common/check_numa"},
 			VirtLint.DOMAIN, VirtLint.ERROR, "Domain would not fit into any host NUMA node"},
+		VirtLint.VirtLintWarning{[]string{"common_p", "common_p/check_numa"},
+			VirtLint.DOMAIN, VirtLint.ERROR, "Domain would not fit into any host NUMA node"},
 	}
 	if !reflect.DeepEqual(warn, expect) {
 		t.Errorf("Warnings don't match:\nexpected = %v\ngot = %v", expect, warn)
@@ -259,7 +268,9 @@ func TestOfflineWithError(t *testing.T) {
 
 	// This succeeds, because we deliberately run offline only validators
 	err = vl.Validate(domxml, []string{"TAG_1", "TAG_3", "TAG_4",
-		"common/check_node_kvm", "common/check_numa", "common/check_pcie_root_ports"}, true)
+		"common/check_node_kvm", "common/check_numa", "common/check_pcie_root_ports",
+		"common_p/check_node_kvm", "common_p/check_numa", "common_p/check_pcie_root_ports"},
+		true)
 	if err != nil {
 		t.Error(err)
 		return
@@ -275,6 +286,8 @@ func TestOfflineWithError(t *testing.T) {
 		VirtLint.VirtLintWarning{[]string{"TAG_1", "TAG_2"},
 			VirtLint.DOMAIN, VirtLint.ERROR, "Domain would not fit into any host NUMA node"},
 		VirtLint.VirtLintWarning{[]string{"common", "common/check_numa"},
+			VirtLint.DOMAIN, VirtLint.ERROR, "Domain would not fit into any host NUMA node"},
+		VirtLint.VirtLintWarning{[]string{"common_p", "common_p/check_numa"},
 			VirtLint.DOMAIN, VirtLint.ERROR, "Domain would not fit into any host NUMA node"},
 	}
 	if !reflect.DeepEqual(warn, expect) {
