@@ -9,7 +9,7 @@ import (
 )
 
 /*
-#cgo pkg-config: --static virt_lint
+#cgo pkg-config: virt_lint
 #include "virt_lint.h"
 */
 import "C"
