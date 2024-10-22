@@ -18,6 +18,10 @@ fn test_init() {
             "VIRT_LINT_LUA_PATH",
             concat!(env!("CARGO_MANIFEST_DIR"), "/../validators_lua"),
         );
+        std::env::set_var(
+            "VIRT_LINT_PYTHON_PATH",
+            concat!(env!("CARGO_MANIFEST_DIR"), "/../validators_python"),
+        );
     });
 }
 
@@ -59,7 +63,12 @@ fn test_list_tags() {
             "common/check_node_kvm",
             "common/check_numa",
             "common/check_numa_free",
-            "common/check_pcie_root_ports"
+            "common/check_pcie_root_ports",
+            "common_p",
+            "common_p/check_node_kvm",
+            "common_p/check_numa",
+            "common_p/check_numa_free",
+            "common_p/check_pcie_root_ports",
         ]
     );
 }
@@ -109,6 +118,21 @@ fn test_simple() {
                     vec![
                         String::from("common"),
                         String::from("common/check_numa_free")
+                    ],
+                    WarningDomain::Domain,
+                    WarningLevel::Error,
+                    String::from("Not enough free memory on any NUMA node")
+                ),
+                VirtLintWarning::new(
+                    vec![String::from("common_p"), String::from("common_p/check_numa")],
+                    WarningDomain::Domain,
+                    WarningLevel::Error,
+                    String::from("Domain would not fit into any host NUMA node")
+                ),
+                VirtLintWarning::new(
+                    vec![
+                        String::from("common_p"),
+                        String::from("common_p/check_numa_free")
                     ],
                     WarningDomain::Domain,
                     WarningLevel::Error,
@@ -171,6 +195,12 @@ fn test_offline_simple() {
                 WarningLevel::Error,
                 String::from("Domain would not fit into any host NUMA node")
             ),
+            VirtLintWarning::new(
+                vec![String::from("common_p"), String::from("common_p/check_numa")],
+                WarningDomain::Domain,
+                WarningLevel::Error,
+                String::from("Domain would not fit into any host NUMA node")
+            ),
         ]
     );
 }
@@ -219,6 +249,9 @@ fn test_offline_with_error() {
                 String::from("common/check_node_kvm"),
                 String::from("common/check_numa"),
                 String::from("common/check_pcie_root_ports"),
+                String::from("common_p/check_node_kvm"),
+                String::from("common_p/check_numa"),
+                String::from("common_p/check_pcie_root_ports"),
             ],
             true
         )
@@ -239,6 +272,12 @@ fn test_offline_with_error() {
             ),
             VirtLintWarning::new(
                 vec![String::from("common"), String::from("common/check_numa")],
+                WarningDomain::Domain,
+                WarningLevel::Error,
+                String::from("Domain would not fit into any host NUMA node")
+            ),
+            VirtLintWarning::new(
+                vec![String::from("common_p"), String::from("common_p/check_numa")],
                 WarningDomain::Domain,
                 WarningLevel::Error,
                 String::from("Domain would not fit into any host NUMA node")
