@@ -19,7 +19,8 @@ rust-build:
 
 rust-cbuild:
 	cargo cbuild --prefix="/usr" --libdir="/usr/lib64" --manifest-path=src/Cargo.toml
-	pushd target/*/debug/ && ln -sf libvirt_lint.so libvirt_lint.so.0; \
+	pushd target/*/debug/ && ln -sf libvirt_lint.so libvirt_lint.so.0 && \
+		ln -sf libvirt_lint.so libvirt_lint.so.0.0.1 ;  \
 	popd
 
 rust-check: rust
