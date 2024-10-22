@@ -291,7 +291,7 @@ impl VirtLint {
 
         self.error_on_no_connect = error_on_no_connect;
 
-        validators.validate(validator_tags, Arc::new(Mutex::new(self.clone())), domxml)
+        validators.validate(validator_tags, self, domxml)
     }
 
     /// List all validator tags.

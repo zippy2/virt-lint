@@ -10,12 +10,11 @@ use std::collections::HashSet;
 use std::ffi::OsString;
 use std::path::Path;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
 
 #[pyclass]
 #[derive(Clone)]
 struct ValidatorPython {
-    vl: Arc<Mutex<VirtLint>>,
+    vl: VirtLint,
     code: String,
     domxml: String,
     tags: Vec<String>,
@@ -25,7 +24,7 @@ impl ValidatorPython {
     pub fn from_path<T: AsRef<Path>, S: AsRef<Path>>(
         path: T,
         prefix: S,
-        vl: Arc<Mutex<VirtLint>>,
+        vl: &mut VirtLint,
         domxml: String,
     ) -> VirtLintResult<Self> {
         let tags = get_tags_for_path(prefix, &path);
@@ -77,16 +76,13 @@ impl ValidatorPython {
         let level = WarningLevel::try_from(level)?;
 
         self.vl
-            .lock()
-            .expect("Mutex poisoned")
             .add_warning(self.tags.clone(), domain, level, msg);
 
         Ok(())
     }
 
     fn caps_xpath(&mut self, xpath: String) -> Result<Option<Vec<String>>, VirtLintError> {
-        let mut vl = self.vl.lock().expect("Mutex poisoned");
-        let caps = match vl.capabilities_get()? {
+        let caps = match self.vl.capabilities_get()? {
             Some(caps) => caps,
             None => {
                 return Ok(None);
@@ -100,11 +96,10 @@ impl ValidatorPython {
     }
 
     fn domcaps_xpath(&mut self, xpath: String) -> Result<Option<Vec<String>>, VirtLintError> {
-        let mut vl = self.vl.lock().expect("Mutex poisoned");
         let parser = Parser::default();
         let dom_doc = parser.parse_string(&self.domxml)?;
 
-        let domcaps = match vl.domain_capabilities_get(Some(&dom_doc))? {
+        let domcaps = match self.vl.domain_capabilities_get(Some(&dom_doc))? {
             Some(domcaps) => domcaps,
             None => {
                 return Ok(None);
@@ -119,8 +114,6 @@ impl ValidatorPython {
     fn get_libvirt_conn(&mut self, py: Python) -> PyResult<Option<PyObject>> {
         let conn = match self
             .vl
-            .lock()
-            .expect("Mutex poisoned")
             .get_virt_conn()?
         {
             None => return Ok(None),
@@ -266,7 +259,7 @@ impl ValidatorsPython {
     pub fn validate(
         &self,
         tags: &[String],
-        vl: Arc<Mutex<VirtLint>>,
+        vl: &mut VirtLint,
         domxml: &str,
         _domxml_doc: &Document,
     ) -> VirtLintResult<()> {
@@ -274,7 +267,7 @@ impl ValidatorsPython {
             let paths = get_validators(p, tags, &self.filename_prefix, &self.ext);
 
             for path in paths {
-                ValidatorPython::from_path(path, p, vl.clone(), domxml.to_string())?.validate()?;
+                ValidatorPython::from_path(path, p, vl, domxml.to_string())?.validate()?;
             }
         }
 

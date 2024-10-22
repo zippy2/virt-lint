@@ -288,16 +288,15 @@ impl ValidatorsLua {
     pub fn validate(
         &self,
         tags: &[String],
-        vl: Arc<Mutex<VirtLint>>,
+        vl: &mut VirtLint,
         domxml: &str,
         domxml_doc: &Document,
     ) -> VirtLintResult<()> {
         for p in self.prefix.iter() {
             let validators = get_validators(p, tags, &self.filename_prefix, &self.ext);
 
-            let mut vl_locked = vl.lock().expect("Mutex poisoned");
             for validator in validators {
-                validate_one(validator, p, &mut vl_locked, domxml, domxml_doc)?;
+                validate_one(validator, p, vl, domxml, domxml_doc)?;
             }
         }
 
