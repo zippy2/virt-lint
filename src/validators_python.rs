@@ -55,6 +55,8 @@ impl ValidatorPython {
                 }
             }
 
+            globals.del_item("vl")?;
+
             output
         })?;
 
