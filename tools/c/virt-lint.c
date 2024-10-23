@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <libgen.h>
 
 #include <libvirt/libvirt.h>
 #include <libvirt/virterror.h>
