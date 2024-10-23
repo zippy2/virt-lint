@@ -14,7 +14,7 @@ CRATES="
 	anstyle-wincon@3.0.4
 	autocfg@1.4.0
 	bstr@1.10.0
-	cc@1.1.30
+	cc@1.1.31
 	cfg-if@1.0.0
 	clap@4.5.20
 	clap_builder@4.5.20
@@ -23,10 +23,12 @@ CRATES="
 	colorchoice@1.0.2
 	enum-display-derive@0.1.1
 	heck@0.5.0
+	indoc@2.0.5
 	is_terminal_polyfill@1.70.1
-	libc@0.2.159
+	libc@0.2.161
 	libxml@0.3.3
 	memchr@2.7.4
+	memoffset@0.9.1
 	mlua@0.9.9
 	mlua-sys@0.6.3
 	num-traits@0.2.19
@@ -34,21 +36,29 @@ CRATES="
 	pkg-config@0.3.31
 	pkg-version@1.0.0
 	pkg-version-impl@0.1.1
+	portable-atomic@1.9.0
 	proc-macro-hack@0.5.20+deprecated
-	proc-macro2@1.0.87
+	proc-macro2@1.0.89
+	pyo3@0.22.5
+	pyo3-build-config@0.22.5
+	pyo3-ffi@0.22.5
+	pyo3-macros@0.22.5
+	pyo3-macros-backend@0.22.5
 	quote@1.0.37
 	rustc-hash@2.0.0
-	serde@1.0.210
-	serde_derive@1.0.210
+	serde@1.0.213
+	serde_derive@1.0.213
 	shlex@1.3.0
 	strsim@0.11.1
 	syn@1.0.109
-	syn@2.0.79
-	thiserror@1.0.64
-	thiserror-impl@1.0.64
+	syn@2.0.82
+	target-lexicon@0.12.16
+	thiserror@1.0.65
+	thiserror-impl@1.0.65
 	unicode-ident@1.0.13
+	unindent@0.2.3
 	utf8parse@0.2.2
-	uuid@1.10.0
+	uuid@1.11.0
 	vcpkg@0.2.15
 	virt@0.4.1
 	virt-sys@0.3.0
