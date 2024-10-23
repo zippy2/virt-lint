@@ -74,8 +74,8 @@ if [[ ${PV} == *9999 ]] ; then
 	EGIT_REPO_URI="https://gitlab.com/MichalPrivoznik/virt-lint"
 	inherit git-r3
 else
-	SRC_URI="https://gitlab.com/MichalPrivoznik/virt-lint/-/archive/v${PV}/libvirt-v${PV}.tar.bz2 -> ${P}.tar.bz2
-		$(cargo_crate_uris ${CRATES})"
+	SRC_URI="https://gitlab.com/MichalPrivoznik/virt-lint/-/archive/v${PV}/libvirt-v${PV}.tar.bz2 -> ${P}.tar.bz2"
+	SRC_URI+="${CARGO_CRATE_URIS}"
 	KEYWORDS="~amd64 ~x86"
 fi
 
@@ -83,7 +83,7 @@ fi
 # use cargo-license for a more accurate license picture
 LICENSE="0BSD Apache-2.0 LGPL-2.1 LGPL-3+ MIT Unicode-DFS-2016 Unlicense"
 SLOT="0"
-IUSE="+c +go -static-libs"
+IUSE="+c +go static-libs"
 REQUIRED_USE="
 	go? ( c )
 	static-libs? ( c )
