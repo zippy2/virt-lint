@@ -20,13 +20,13 @@ rust: rust-build rust-cbuild
 
 rust-build:
 	cargo build
-	pushd target/debug/ && ln -sf libvirt_lint_python.so virt_lint$(PYTAG); \
+	pushd target/debug/ && ln -sf libvirt_lint_python.$(libsuffix) virt_lint$(PYTAG); \
 	popd
 
 rust-cbuild:
 	cargo cbuild --prefix="/usr" --libdir="/usr/lib64" --manifest-path=src/Cargo.toml
-	pushd target/*/debug/ && ln -sf libvirt_lint.so libvirt_lint.so.0 && \
-		ln -sf libvirt_lint.so libvirt_lint.so.0.0.1 ;  \
+	pushd target/*/debug/ && ln -sf libvirt_lint.$(libsuffix) libvirt_lint.$(libsuffix).0 && \
+		ln -sf libvirt_lint.$(libsuffix) libvirt_lint.$(libsuffix).0.0.1 ;  \
 	popd
 
 rust-check: rust

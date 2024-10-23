@@ -15,4 +15,8 @@ clean:
 
 .PHONY: run
 run: all
+ifeq ($(OS), Darwin)
+	DYLD_LIBRARY_PATH="$(VIRTLINT_BASE)" ./virt-lint
+else
 	LD_LIBRARY_PATH="$(VIRTLINT_BASE)" ./virt-lint
+endif
