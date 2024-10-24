@@ -3,6 +3,12 @@ PYTAG = $(shell python -c 'import sysconfig; print(sysconfig.get_config_var("EXT
 prefix ?= /usr
 datarootdir ?= $(prefix)/share
 
+libsuffix ?= so
+OS = $(shell uname -s)
+ifeq ($(OS), Darwin)
+	libsuffix = dylib
+endif
+
 all: rust c-build go-build
 
 # Unfortunately, we have to create the symlink ourselves:
