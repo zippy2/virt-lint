@@ -4,6 +4,8 @@ ifeq ($(VIRTLINT_BASE),)
 VIRTLINT_BASE := $(PWD)/target/x86_64-unknown-linux-gnu/debug/
 endif
 
+OS = $(shell uname -s)
+
 all: libvirt-mod virt-lint-cli
 
 libvirt-mod:
@@ -20,7 +22,11 @@ clean:
 	rm -f virt-lint-cli
 
 test: all
+ifeq ($(OS), Darwin)
+	DYLD_LIBRARY_PATH="$(VIRTLINT_BASE)" PKG_CONFIG_PATH=$(VIRTLINT_BASE) go test virt-lint/*
+else
 	LD_LIBRARY_PATH="$(VIRTLINT_BASE)" PKG_CONFIG_PATH=$(VIRTLINT_BASE) go test virt-lint/*
+endif
 
 fmt:
 	go fmt
@@ -32,4 +38,8 @@ vet:
 
 .PHONY: run
 run: all
+ifeq ($(OS), Darwin)
+	DYLD_LIBRARY_PATH="$(VIRTLINT_BASE)" ./virt-lint-cli
+else
 	LD_LIBRARY_PATH="$(VIRTLINT_BASE)" ./virt-lint-cli
+endif

@@ -7,6 +7,12 @@ libsuffix ?= so
 OS = $(shell uname -s)
 ifeq ($(OS), Darwin)
 	libsuffix = dylib
+	libsuffixminor = 0.dylib
+	libsuffixmicro = 0.0.1.dylib
+else
+	libsuffix = so
+	libsuffixminor = so.0
+	libsuffixmicro = so.0.0.1
 endif
 
 all: rust c-build go-build
@@ -25,8 +31,8 @@ rust-build:
 
 rust-cbuild:
 	cargo cbuild --prefix="/usr" --libdir="/usr/lib64" --manifest-path=src/Cargo.toml
-	pushd target/*/debug/ && ln -sf libvirt_lint.$(libsuffix) libvirt_lint.$(libsuffix).0 && \
-		ln -sf libvirt_lint.$(libsuffix) libvirt_lint.$(libsuffix).0.0.1 ;  \
+	pushd target/*/debug/ && ln -sf libvirt_lint.$(libsuffix) libvirt_lint.$(libsuffixminor) && \
+		ln -sf libvirt_lint.$(libsuffix) libvirt_lint.$(libsuffixmicro) ;  \
 	popd
 
 rust-check: rust
