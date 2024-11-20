@@ -32,6 +32,27 @@ BuildRequires:  pkgconfig(python3)
 
 %description %{_description}
 
+%package devel
+Summary: Libraries, includes, etc. to compile with virt-lint
+Requires: virt-lint = %{version}-%{release}
+
+%description devel
+Include header files & development libraries for the virt-lint library.
+
+%package validators-lua
+Summary: Validators written in Lua for the virt-lint library.
+Requires: virt-lint = %{version}-%{release}
+
+%description validators-lua
+Validators written in Lua for the virt-lint library.
+
+%package validators-python
+Summary: Validators written in Python for the virt-lint library.
+Requires: virt-lint = %{version}-%{release}
+
+%description validators-python
+Validators written in Python for the virt-lint library.
+
 %prep
 %autosetup -n %{crate}-%{version} -p1
 %cargo_prep
@@ -81,11 +102,18 @@ cd ..
 make install-data DESTDIR=%{buildroot} prefix=%{_prefix}
 
 %files
+%{_libdir}/libvirt_lint.so.*
+
+%files devel
+%{_libdir}/libvirt_lint.so
 %{_includedir}/virt_lint/virt_lint.h
-%{_libdir}/libvirt_lint.so*
 %{_libdir}/libvirt_lint.a
 %{_libdir}/pkgconfig/virt_lint.pc
+
+%files validators-lua
 %{_datadir}/virt-lint/validators_lua
+
+%files validators-python
 %{_datadir}/virt-lint/validators_python
 
 %changelog
