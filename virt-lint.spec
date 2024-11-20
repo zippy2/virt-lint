@@ -58,36 +58,7 @@ Validators written in Python for the virt-lint library.
 %cargo_prep
 # Now fix up cargo config to allow vendoring and unpack the vendored archive
 (
-echo '
-[build]
-rustc = "/usr/bin/rustc"
-rustdoc = "/usr/bin/rustdoc"
-
-[profile.rpm]
-inherits = "release"
-opt-level = 3
-codegen-units = 1
-debug = 2
-strip = "none"
-
-[env]
-CFLAGS = "-O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Werror=implicit-function-declaration -Werror=implicit-int -Wp,-U_FORTIFY_SOURCE,-D_FORTIFY_SOURCE=3 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1  -m64   -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer "
-CXXFLAGS = "-O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-U_FORTIFY_SOURCE,-D_FORTIFY_SOURCE=3 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1  -m64   -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer "
-LDFLAGS = "-Wl,-z,relro -Wl,--as-needed  -Wl,-z,now -specs=/usr/lib/rpm/redhat/redhat-hardened-ld -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1  -Wl,--build-id=sha1 -specs=/usr/lib/rpm/redhat/redhat-package-notes "
-
-[term]
-verbose = true
-
-[source.local-registry]
-directory = "/usr/share/cargo/registry"
-
-[source.crates-io]
-replace-with = "vendored-sources"
-
-[source.vendored-sources]
-directory = "./vendor"
-' > .cargo/config
-
+sed -i 's,/usr/share/cargo/registry,./vendor,' .cargo/config.toml
 tar -xoaf %{SOURCE1}
 )
 
