@@ -71,12 +71,13 @@ tar -xoaf %{SOURCE1}
 )
 
 %build
-# And since rpmbuild removes builddir in between %%build and %%install, make this
-# NOP and do the compilation in %%install.
-#CARGO_HOME=".cargo" cargo cbuild
+cd src/
+%cargo_cbuild
 
 %install
-CARGO_HOME=".cargo" cargo cinstall --destdir=%{buildroot} --prefix=%{_prefix} --libdir=%{_libdir} --manifest-path=src/Cargo.toml
+cd src/
+%cargo_cinstall
+cd ..
 make install-data DESTDIR=%{buildroot} prefix=%{_prefix}
 
 %files
