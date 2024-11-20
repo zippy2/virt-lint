@@ -5,6 +5,9 @@
 # rust2rpm is in no way prepared for that. Hence the hackish nature of the
 # whole spec file.
 
+# Don't produce debug packages
+%global debug_package %{nil}
+
 %global crate virt-lint
 
 Name:           virt-lint
@@ -18,9 +21,11 @@ Source0:        virt-lint-0.0.1.tar.xz
 Source1:        virt-lint-0.0.1-vendor.tar.xz
 
 BuildRequires:  rust-packaging
-BuildRequires:  libvirt-devel
 BuildRequires:  cargo-c
+BuildRequires:  pkgconfig(libvirt)
+BuildRequires:  pkgconfig(libxml-2.0)
 BuildRequires:  pkgconfig(lua)
+BuildRequires:  pkgconfig(python3)
 
 %global _description %{expand:
 %{summary}.}
@@ -80,6 +85,7 @@ make install-data DESTDIR=%{buildroot} prefix=%{_prefix}
 %{_libdir}/libvirt_lint.a
 %{_libdir}/pkgconfig/virt_lint.pc
 %{_datadir}/virt-lint/validators_lua
+%{_datadir}/virt-lint/validators_python
 
 %changelog
 %autochangelog
