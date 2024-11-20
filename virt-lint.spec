@@ -12,7 +12,7 @@
 
 Name:           virt-lint
 Version:        0.0.1
-Release:        %autorelease
+Release:        1%{?dist}
 Summary:        Virtualization linting library
 
 License:        LGPL-3.0-or-later
